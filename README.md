@@ -33,7 +33,7 @@
 ```
 
 ### 1. 💻 选股分析平台
-![选股分析平台实盘参考图](assets/screenshots/01-stock-screener-workbench.jpg)
+![选股分析平台实盘参考图](assets/01-stock-screener-workbench.jpg)
 
 - **长桥 Screener API 全美股自动初筛**：自动筛选全美股市值 > $2B、成交额 > $20M、股价 > $10 的动量领头标的。
 - **候选股票池实时诊断**：多线程计算 9/21/50 EMA、Swing AVWAP 锚定成交量加权均线与量价异动，自动生成四种实战状态研判标签（`🟢 Flush&Reclaim金标买点`、`🔵 9EMA回踩企稳区`、`🟡 VCP收敛观察中`、`🔴 跌破支撑放弃`）。
@@ -42,7 +42,7 @@
 - **期望值防御沙盘**：基于凯利公式与非对称盈亏比模拟 100 笔交易蒙特卡洛期望值，直观印证“胜率仅 35% 即可实现暴利”。
 
 ### 2. 📦 交易跟踪平台
-![交易跟踪平台实盘参考图](assets/screenshots/02-trades-tracking-monitor.jpg)
+![交易跟踪平台实盘参考图](assets/02-trades-tracking-monitor.jpg)
 
 - **持仓实时追踪**：直观展示在手持仓的代码、入场均价、当前止损线、现价、浮盈金额及当前实际捕获的 **R 倍数**。
 - **全生命周期纪律告警**：
