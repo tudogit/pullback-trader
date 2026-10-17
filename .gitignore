@@ -1,0 +1,50 @@
+# Security & Credentials
+*.env
+*.env.*
+.env*
+*credential*
+*secret*
+*token*
+*.key
+*.pem
+*.cert
+*.p12
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs & temp
+*.log
+/tmp/
+
+# Python & environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.venv-ibkr/
+venv/
+ENV/
+.skill-staging/
+
+# Local trade data & cache dumps
+trades_data.json
+*.json
+
+# Ignore other unrelated research scripts & reports in this folder
+weekly-report-*.md
+monthly-dca-plan.md
+fetch_*.py
+get_*.py
+ibkr_*.py
+parse_*.py
+process_market.py
+full_analysis.py
+generate_all_data.py
+portfolio_market_data.py
+run_calc.py
+run_market_calc.py
+run_dashboard.command
+martin_trader_cli.py
+assets/ai-bubble-weekly-2026-06-27-ledger-ghost/

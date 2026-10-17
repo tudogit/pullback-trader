@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>强势股回调交易系统</title>
+<style>
+  :root {
+    --bg: #0b1120;
+    --card: #1e293b;
+    --text: #f8fafc;
+    --text-muted: #94a3b8;
+    --border: #334155;
+    --accent: #38bdf8;
+    --green: #22c55e;
+    --yellow: #eab308;
+    --red: #ef4444;
+    --gold: #f59e0b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { background: var(--bg); color: var(--text); padding: 24px; }
+  
+  /* 顶部导航与主Tab */
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .title h1 { font-size: 22px; font-weight: 700; color: #fff; }
+  .title p { color: var(--text-muted); font-size: 13px; margin-top: 4px; }
+  .header-actions { display: flex; align-items: center; gap: 12px; }
+  .rule-badge { background: #0369a1; color: #e0f2fe; padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+  
+  /* 主Tab切换按钮条 */
+  .main-tabs { display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+  .main-tab-btn {
+    background: transparent; color: var(--text-muted); border: none; padding: 10px 20px; font-size: 15px; font-weight: 600;
+    cursor: pointer; border-radius: 8px; transition: all 0.2s ease; display: flex; align-items: center; gap: 8px;
+  }
+  .main-tab-btn:hover { background: rgba(255,255,255,0.05); color: #fff; }
+  .main-tab-btn.active { background: #0284c7; color: #fff; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35); }
+  
+  /* 一键刷新大按钮 */
+  .btn-refresh {
+    background: linear-gradient(135deg, #0284c7, #2563eb);
+    color: #fff; border: none; padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3); transition: all 0.2s ease;
+  }
+  .btn-refresh:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(2, 132, 199, 0.45); }
+  .btn-refresh.loading { background: #475569; cursor: not-allowed; box-shadow: none; transform: none; }
+  .btn-refresh.success { background: linear-gradient(135deg, #16a34a, #15803d); box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4); }
+
+  /* 状态研判标签详细图解说明 */
+  .legend-card { background: #131d31; border: 1px solid #1e293b; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; }
+  .legend-title { font-size: 14px; font-weight: 600; color: #e2e8f0; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .legend-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .legend-item { background: #1e293b; border-radius: 8px; padding: 12px 14px; border-left: 4px solid #fff; }
+  .legend-item.trigger { border-color: var(--green); }
+  .legend-item.zone { border-color: var(--accent); }
+  .legend-item.watch { border-color: var(--yellow); }
+  .legend-item.broken { border-color: var(--red); }
+  .legend-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .legend-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  
+  .layout { display: grid; grid-template-columns: 1fr 440px; gap: 24px; }
+  @media(max-width: 1080px) { .layout { grid-template-columns: 1fr; } }
+  
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .card-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+  .tag-source { font-size: 11px; background: #0f172a; padding: 3px 8px; border-radius: 4px; color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+  th { color: var(--text-muted); padding: 10px 12px; border-bottom: 1px solid var(--border); font-weight: 500; font-size: 12px; }
+  td { padding: 12px; border-bottom: 1px solid var(--border); }
+  tr:hover { background: rgba(255,255,255,0.04); cursor: pointer; }
+  tr.active-row { background: rgba(56, 189, 248, 0.12); border-left: 3px solid var(--accent); }
+  
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .badge-trigger { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid #22c55e; }
+  .badge-zone { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #0284c7; }
+  .badge-watch { background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid #ca8a04; }
+  .badge-broken { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #dc2626; }
+  
+  /* 分时图与突破分析面板 */
+  .intraday-panel { background: #0f172a; border-radius: 10px; padding: 16px; border: 1px solid var(--border); margin-bottom: 20px; }
+  .timeframe-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .tf-btn {
+    background: #1e293b; color: var(--text-muted); border: 1px solid var(--border);
+    padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s;
+  }
+  .tf-btn.active { background: #0284c7; color: #fff; border-color: #38bdf8; }
+  .trigger-status-box {
+    padding: 12px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; line-height: 1.5; margin-bottom: 12px;
+  }
+  .trigger-gold { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; box-shadow: 0 0 12px rgba(245, 158, 11, 0.2); }
+  .trigger-active { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid #22c55e; }
+  .trigger-waiting { background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid #ca8a04; }
+  
+  .kline-list { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; }
+  .kline-bar {
+    flex: 0 0 54px; background: #1e293b; border-radius: 6px; padding: 6px 4px; text-align: center; font-size: 10px;
+    border: 1px solid var(--border);
+  }
+  .kline-bar.up { border-top: 3px solid var(--green); }
+  .kline-bar.down { border-top: 3px solid var(--red); }
+  .bar-time { color: var(--text-muted); margin-bottom: 4px; }
+  .bar-price { font-weight: 700; color: #fff; font-size: 11px; }
+
+  /* Calculator */
+  .calc-group { margin-bottom: 12px; }
+  .calc-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 5px; }
+  .calc-group input { width: 100%; background: #0b1120; border: 1px solid var(--border); color: #fff; padding: 9px 12px; border-radius: 8px; font-size: 13px; outline: none; }
+  .calc-group input:focus { border-color: var(--accent); }
+  .calc-btn { width: 100%; background: #0284c7; color: #fff; border: none; padding: 11px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+  .calc-btn:hover { background: #0369a1; }
+  
+  .res-box { margin-top: 16px; padding: 16px; background: #0b1120; border-radius: 8px; border-left: 4px solid var(--accent); }
+  .res-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
+  .res-row:last-child { margin-bottom: 0; }
+  .res-val { font-weight: 600; color: #fff; }
+  .res-big { font-size: 24px; color: #38bdf8; font-weight: 700; }
+
+  /* 细节升级模块样式：止损动态路线图 & 期望值沙盘 */
+  .trail-box { background: #131d31; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; margin-top: 12px; font-size: 12px; }
+  .trail-title { color: #e2e8f0; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .trail-step { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed var(--border); }
+  .trail-step:last-child { border-bottom: none; }
+  
+  .sim-box { background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 12px; margin-top: 12px; font-size: 12px; line-height: 1.6; color: #bae6fd; }
+
+  /* 第二个Tab：方法规则白皮书专属样式 */
+  .rules-container { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+  .rule-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+  .rule-sec-title { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+  .rule-step-num { background: var(--accent); color: #0b1120; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; }
+  .rule-text { color: #cbd5e1; font-size: 14px; line-height: 1.8; margin-bottom: 14px; }
+  .rule-highlight-box { background: #0f172a; border-left: 4px solid var(--accent); padding: 14px 18px; border-radius: 6px; margin: 12px 0; font-size: 13px; color: #e2e8f0; line-height: 1.7; }
+  .rule-formula-box { background: #070d19; border: 1px dashed var(--accent); padding: 16px; border-radius: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #38bdf8; font-size: 13px; margin: 14px 0; }
+  .checklist { list-style: none; margin: 12px 0; padding-left: 0; }
+  .checklist li { 
+    position: relative; 
+    padding: 8px 0 8px 28px; 
+    font-size: 14px; 
+    color: #cbd5e1; 
+    line-height: 1.8; 
+  }
+  .checklist li::before { 
+    content: "✅"; 
+    position: absolute; 
+    left: 0; 
+    top: 8px; 
+    font-size: 14px; 
+    line-height: 1.8; 
+  }
+  .warning-box { background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: 8px; padding: 14px 18px; color: #fca5a5; font-size: 13px; line-height: 1.6; margin-top: 14px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="title">
+    <h1>📈 强势股回调交易系统</h1>
+    <p>最近更新: <span id="update-time">2026-10-17 15:35:09</span></p>
+  </div>
+  <div class="header-actions">
+    <div class="rule-badge">核心纪律：账户风险 ≤ 0.5% | 窄止损 ≤ 3% | 1R 保本 · 3R 锁利 · 5R 奔跑</div>
+  </div>
+</div>
+
+<!-- 主Tab切换栏 -->
+<div class="main-tabs">
+  <button class="main-tab-btn active" id="tab-btn-workbench" onclick="switchMainTab('workbench')">
+    <span>💻</span> 选股分析平台
+  </button>
+  <button class="main-tab-btn" id="tab-btn-tracking" onclick="switchMainTab('tracking')">
+    <span>📦</span> 交易跟踪平台 (<span id="tab-active-count">0</span>)
+  </button>
+  <button class="main-tab-btn" id="tab-btn-log" onclick="switchMainTab('log')">
+    <span>📜</span> 交易日志 (<span id="tab-closed-count">0</span>)
+  </button>
+  <button class="main-tab-btn" id="tab-btn-handbook" onclick="switchMainTab('handbook')">
+    <span>📖</span> 交易规则白皮书
+  </button>
+</div>
+
+<!-- ==================== TAB 1: 实盘交易工作台 ==================== -->
+<div id="tab-content-workbench">
+  <!-- 状态研判标签详细图解说明 -->
+  <div class="legend-card">
+    <div class="legend-title">📖 状态研判标签说明</div>
+    <div class="legend-grid">
+      <div class="legend-item trigger">
+        <div class="legend-header">
+          <span class="badge badge-trigger">🔥 突破触发 / 🌟 Flush&Reclaim</span>
+          <span style="font-size:11px; color:#4ade80; font-weight:600;">【立即执行】</span>
+        </div>
+        <div class="legend-desc">
+          <strong>含义：</strong>股价在 21 EMA / AVWAP 支撑区获得支撑，甚至盘中下影线刺穿诱空后极速收复，向上突破前一根K线高点。<br>
+          <strong>动作：</strong>达到买入触发扳机，以止损价设在突破K线低点（或2.5%~3%内）建仓试错。
+        </div>
+      </div>
+
+      <div class="legend-item zone">
+        <div class="legend-header">
+          <span class="badge badge-zone">👀 支撑回踩</span>
+          <span style="font-size:11px; color:#38bdf8; font-weight:600;">【重点盯盘】</span>
+        </div>
+        <div class="legend-desc">
+          <strong>含义：</strong>股价正处于 21 EMA 与近30日最高点 AVWAP 的支撑密集带，波动正在收缩。<br>
+          <strong>动作：</strong>进入伏击圈，在右侧切换1m/5m/15m分时线等待回升拐头，<strong>不要提前猜底挂单</strong>。
+        </div>
+      </div>
+
+      <div class="legend-item watch">
+        <div class="legend-header">
+          <span class="badge badge-watch">⏳ 观察中</span>
+          <span style="font-size:11px; color:#facc15; font-weight:600;">【严禁追高】</span>
+        </div>
+        <div class="legend-desc">
+          <strong>含义：</strong>股票虽然强势，但当前价格明显偏离 21 EMA 与高点 AVWAP 支撑带。<br>
+          <strong>动作：</strong>盈亏比不足，此时买入止损幅度过大，必须耐心等待价格主动回调到位。
+        </div>
+      </div>
+
+      <div class="legend-item broken">
+        <div class="legend-header">
+          <span class="badge badge-broken">❌ 破位转弱</span>
+          <span style="font-size:11px; color:#f87171; font-weight:600;">【绝对放弃】</span>
+        </div>
+        <div class="legend-desc">
+          <strong>含义：</strong>股价跌穿关键支撑带或跌破 50 EMA 强弱分界线，高低点持续下移。<br>
+          <strong>动作：</strong>失去强势股动能保护，严禁任何主观接飞刀与左侧抄底！
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- 左侧：股票池监控表 -->
+    <div class="card">
+      <div class="card-title">
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <span>👀 候选股票池实时诊断</span>
+          <button class="btn-refresh" id="refresh-btn" onclick="triggerServerRefresh(false)" style="padding: 5px 12px; font-size: 12px;">
+            <span id="refresh-icon">🔄</span>
+            <span id="refresh-text">一键更新选股与行情</span>
+          </button>
+          <span id="pool-timer-badge" style="font-size:11px; color:#38bdf8; background:rgba(2,132,199,0.15); border:1px solid rgba(2,132,199,0.3); padding:4px 10px; border-radius:12px; font-weight:500; display:flex; align-items:center; gap:5px;">
+            ⏱️ 5分钟自动选股: <strong id="pool-countdown" style="font-family:monospace; font-size:12px;">05:00</strong>
+          </span>
+        </div>
+        <div>
+          <span class="tag-source">长桥 Screener API 自动同步</span>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>代码</th>
+            <th>所属题材/行业</th>
+            <th>现价</th>
+            <th>21 EMA</th>
+            <th>高点 AVWAP</th>
+            <th>支撑区间</th>
+            <th>状态研判</th>
+          </tr>
+        </thead>
+        <tbody id="stock-tbody">
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 右侧：分时突破触发深度分析 + 仓位风控计算器 -->
+    <div class="card">
+      <div class="card-title">
+        <span>🎯 <span id="current-focus-sym">NVDA</span> 盘中突破扳机检测</span>
+        <span class="tag-source">含 Flush&Reclaim 诱空收复</span>
+      </div>
+
+      <!-- 1m / 5m / 15m 切换面板 -->
+      <div class="intraday-panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <span style="font-size:12px; color:var(--text-muted);">选择突破研判周期:</span>
+          <div class="timeframe-tabs">
+            <button class="tf-btn" id="tf-1m" onclick="switchTimeframe('1m')">1分钟 (超短)</button>
+            <button class="tf-btn active" id="tf-5m" onclick="switchTimeframe('5m')">5分钟 (标准)</button>
+            <button class="tf-btn" id="tf-15m" onclick="switchTimeframe('15m')">15分钟 (稳健)</button>
+          </div>
+        </div>
+
+        <div class="trigger-status-box" id="intraday-status-box">
+          正在拉取分时 K 线并研判突破扳机...
+        </div>
+
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">最近 K 线序列与突破基准高点:</div>
+        <div class="kline-list" id="kline-container"></div>
+      </div>
+
+      <!-- 仓位风控计算器 -->
+      <div class="card-title" style="margin-top:16px;">
+        <span>⚖️ 仓位与风控计算器</span>
+        <span class="tag-source">严格 0.5% 账户微试错</span>
+      </div>
+      <div class="calc-group">
+        <label>股票代码</label>
+        <input type="text" id="calc-sym" value="NVDA">
+      </div>
+      <div class="calc-group">
+        <label>账户总资金 (USD)</label>
+        <input type="number" id="calc-capital" value="10000">
+      </div>
+      <div class="calc-group">
+        <label>计划买入价 (USD)</label>
+        <input type="number" id="calc-entry" step="0.01" value="215.00">
+      </div>
+      <div class="calc-group">
+        <label>严格止损价 (USD，建议设在前K低点)</label>
+        <input type="number" id="calc-stop" step="0.01" value="209.50">
+      </div>
+      <div class="calc-group">
+        <label>单笔风险预算 (% 账户总资产)</label>
+        <input type="number" id="calc-risk" step="0.1" value="0.5">
+      </div>
+      <button class="calc-btn" onclick="calculateRisk()">立即计算开仓股数与止盈</button>
+
+      <div class="res-box" id="calc-result" style="display:none;">
+        <div class="res-row">
+          <span>建议买入股数:</span>
+          <span class="res-big" id="res-shares">0 股</span>
+        </div>
+        <div class="res-row">
+          <span>止损幅度:</span>
+          <span class="res-val" id="res-stop-pct">0%</span>
+        </div>
+        <div class="res-row">
+          <span>开仓占用金额:</span>
+          <span class="res-val" id="res-cost">$0</span>
+        </div>
+        <div class="res-row">
+          <span>每股风险 (1R):</span>
+          <span class="res-val" id="res-1r">$0</span>
+        </div>
+        <div class="res-row">
+          <span>最大可承受亏损:</span>
+          <span class="res-val" id="res-max-loss" style="color:var(--red);">$0</span>
+        </div>
+        <hr style="border:0; border-top:1px solid var(--border); margin:10px 0;">
+        <div class="res-row">
+          <span>第一止盈目标 (3R):</span>
+          <span class="res-val" id="res-3r" style="color:#4ade80;">$0</span>
+        </div>
+        <div class="res-row">
+          <span>波段趋势目标 (5R):</span>
+          <span class="res-val" id="res-5r" style="color:#38bdf8;">$0</span>
+        </div>
+
+        <!-- 升级细节3：动态止损上移路线图 -->
+        <div class="trail-box">
+          <div class="trail-title">
+            <span>🛡️</span> 动态止损跟踪路线
+          </div>
+          <div class="trail-step">
+            <span style="color:var(--text-muted);">① 开仓初始:</span>
+            <span style="color:#f87171;" id="trail-init">严格设在止损价</span>
+          </div>
+          <div class="trail-step">
+            <span style="color:var(--text-muted);">② 触及 1R (平保):</span>
+            <span style="color:#fbbf24;" id="trail-breakeven">上移至保本价 (Free Ride)</span>
+          </div>
+          <div class="trail-step">
+            <span style="color:var(--text-muted);">③ 触及 3R (分批):</span>
+            <span style="color:#4ade80;" id="trail-lock">锁定半仓，止损移至+1R</span>
+          </div>
+        </div>
+
+        <!-- 升级细节1：期望值防御沙盘 -->
+        <div class="sim-box" id="res-sim">
+          <strong>📊 期望值防御沙盘（胜率 40% 也能年化爆发的秘密）：</strong><br>
+          即使此后遇到 <strong>4 笔连续试错止损</strong>，账户总回撤仅为 <strong>-2.0%</strong>；<br>
+          只要下一笔抓住一个 5R 趋势波段，就能直接带来 <strong>+2.5%</strong> 纯利润，不仅瞬间抹平全部回撤，账户净值还将创出历史新高！
+        </div>
+
+        <div id="res-warn" style="color:var(--yellow); font-size:12px; margin-top:8px;"></div>
+        <button class="calc-btn" style="margin-top:14px; background:#16a34a;" onclick="recordBuyTrade()">
+          📥 按照此方案记入【交易跟踪平台】
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ==================== TAB 2: 交易跟踪平台 ==================== -->
+<div id="tab-content-tracking" style="display:none;">
+  <div class="rules-container">
+    
+    <!-- 实时持仓监控台 -->
+    <div class="rule-section">
+      <div class="rule-sec-title" style="display:flex; justify-content:space-between; align-items:center;">
+        <div><span>📦</span> 持仓实时追踪与纪律告警</div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span id="tracking-sync-status" style="font-size:11px; color:#4ade80; background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.3); padding:3px 10px; border-radius:12px; font-weight:500;">🟢 30秒静默监控运行中</span>
+          <span class="tag-source">自动监控 1R/3R/5R 阶梯兑现与 9 EMA 乖离</span>
+        </div>
+      </div>
+      <p class="rule-text">
+        系统根据现价实时计算当前持仓的<strong>实际 R 倍数收益</strong>与 <strong>9 EMA 偏离程度</strong>。达到 1R 提示平保，达到 3R/5R 阶梯高亮提示分批止盈，远离均线提示高潮冲高减仓！
+      </p>
+
+      <!-- 纪律告警量化规则说明 -->
+      <div style="margin-top:14px; margin-bottom:18px; background:#070d19; border:1px solid #1e293b; border-radius:10px; padding:14px 16px;">
+        <div style="color:#e2e8f0; font-size:13px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+          <span>🔔</span> 持仓全生命周期纪律告警规则说明（实战执行标准）
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:10px;">
+          
+          <div style="background:#0f172a; border-left:3px solid #dc2626; border-radius:6px; padding:10px 12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+              <span style="font-weight:700; color:#f87171; font-size:12px;">⛔ 触及止损价</span>
+              <span style="font-size:10px; background:rgba(239,68,68,0.2); color:#fca5a5; padding:1px 5px; border-radius:3px;">现价 ≤ 止损</span>
+            </div>
+            <div style="font-size:11px; color:#94a3b8; line-height:1.6;">
+              <strong>严格执行：</strong>坚决市价清仓，绝不抗单。严控单笔亏损在账户 0.5% 预算内。
+            </div>
+          </div>
+
+          <div style="background:#0f172a; border-left:3px solid #0284c7; border-radius:6px; padding:10px 12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+              <span style="font-weight:700; color:#38bdf8; font-size:12px;">🛡️ 1R 成本平保</span>
+              <span style="font-size:10px; background:rgba(56,189,248,0.2); color:#bae6fd; padding:1px 5px; border-radius:3px;">浮盈 ≥ +1R</span>
+            </div>
+            <div style="font-size:11px; color:#94a3b8; line-height:1.6;">
+              <strong>严格执行：</strong>立即在券商App将止损线拉到成本价，实现零风险免费持仓（Free Ride）。
+            </div>
+          </div>
+
+          <div style="background:#0f172a; border-left:3px solid #22c55e; border-radius:6px; padding:10px 12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+              <span style="font-weight:700; color:#4ade80; font-size:12px;">🎯 3R 首胜落袋</span>
+              <span style="font-size:10px; background:rgba(34,197,94,0.2); color:#bbf7d0; padding:1px 5px; border-radius:3px;">浮盈 ≥ +3R</span>
+            </div>
+            <div style="font-size:11px; color:#94a3b8; line-height:1.6;">
+              <strong>严格执行：</strong>坚决卖出 1/2 仓位兑现真金白银；剩余半仓止损提到 +1R，释放资金滚复利。
+            </div>
+          </div>
+
+          <div style="background:#0f172a; border-left:3px solid #eab308; border-radius:6px; padding:10px 12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+              <span style="font-weight:700; color:#facc15; font-size:12px;">🏆 5R 波段锁定</span>
+              <span style="font-size:10px; background:rgba(234,179,8,0.2); color:#fef08a; padding:1px 5px; border-radius:3px;">浮盈 ≥ +5R</span>
+            </div>
+            <div style="font-size:11px; color:#94a3b8; line-height:1.6;">
+              <strong>严格执行：</strong>对剩余半仓再次减半（二次锁利）；底仓止损线上移至 +3R，沿 9 EMA 奔跑。
+            </div>
+          </div>
+
+          <div style="background:#0f172a; border-left:3px solid #f59e0b; border-radius:6px; padding:10px 12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+              <span style="font-weight:700; color:#fbbf24; font-size:12px;">🚀 9 EMA 乖离</span>
+              <span style="font-size:10px; background:rgba(245,158,11,0.2); color:#fde68a; padding:1px 5px; border-radius:3px;">偏离 ≥ +14%</span>
+            </div>
+            <div style="font-size:11px; color:#94a3b8; line-height:1.6;">
+              <strong>严格执行：</strong>短线垂直暴拉极度超买！趁充沛买盘流动性主动减仓，规避随后剧烈均线回踩。
+            </div>
+          </div>
+
+        </div>
+      </div>
+      
+      <div id="active-positions-container" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px; margin-top:16px;">
+        <!-- 动态卡片 -->
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== TAB 3: 交易日志 ==================== -->
+<div id="tab-content-log" style="display:none;">
+  <div class="rules-container">
+    
+    <!-- 历史平仓归档与复盘分析 -->
+    <div class="rule-section">
+      <div class="rule-sec-title">
+        <span>📜</span> 历史交易
+      </div>
+      <p class="rule-text">
+        记录所有已平仓或止损离场的交易详情，自动统计每笔交易的<strong>实际净盈亏 ($)</strong> 与 <strong>最终捕获 R 倍数</strong>，作为复盘与系统胜率/赔率验证依据。
+      </p>
+      <table style="width:100%; border-collapse:collapse; text-align:left; font-size:13px;">
+        <thead>
+          <tr>
+            <th>代码</th>
+            <th>平仓时间</th>
+            <th>买入价</th>
+            <th>平仓价</th>
+            <th>股数</th>
+            <th>净盈亏 ($)</th>
+            <th>捕获 R 倍数</th>
+            <th>操作类型</th>
+            <th style="text-align:center;">操作</th>
+          </tr>
+        </thead>
+        <tbody id="closed-trades-tbody">
+          <!-- 动态历史记录 -->
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== TAB 2: 交易战法系统白皮书 ==================== -->
+<div id="tab-content-handbook" style="display:none;">
+  <div class="rules-container">
+    
+    <!-- 策略全貌综述 -->
+    <div class="rule-section">
+      <div class="rule-sec-title">
+        <span>🏆</span> 策略背景与战法哲学
+      </div>
+      <p class="rule-text">
+        香港大学生 <strong>Martin Luk</strong>，以 <strong>969.8% 的年化收益率</strong> 夺得了 2025 年美国投资锦标赛（USIC, United States Investing Championship）股票组冠军。
+        该锦标赛是全球公认含金量最高、真实券商账户实盘审核的投资大赛（往届冠军包括传奇交易大师 Mark Minervini、David Ryan 等）。
+      </p>
+      <div class="rule-highlight-box">
+        <strong>核心战法哲学：</strong><br>
+        Martin 最常用也是最经典的策略被称为<strong>“强势股回调买入法（Pullback / Retest Strategy）”</strong>。<br>
+        这套策略的核心是<strong>“用极小的试错成本，去博取强势股下一段爆发性上涨”</strong>。他专门寻找强势股回到关键支撑密集区时的机会，绝不在半空中追高，也不在左侧接飞刀，而是等待价格确认企稳回升时买入，让买点尽可能贴近止损位置。
+      </div>
+      <p class="rule-text">
+        该策略对资金规模极度友好（尤其适合几十万以下的小资金爆发式增长），操作顺序环环相扣，可以用标准的<strong>四大闭环步骤</strong>完整概括。
+      </p>
+    </div>
+
+    <!-- 海外一手复盘精髓模块 -->
+    <div class="rule-section" style="border-left: 4px solid var(--gold);">
+      <div class="rule-sec-title">
+        <span style="color:var(--gold);">💎</span> 海外一手复盘：969.8% 暴利背后的 3 个底层真相
+      </div>
+      <p class="rule-text">
+        海外专业交易专栏（如 <em>Financial Wisdom TV</em>）在深度拆解 Martin 比赛期间的 700+ 笔真实交易后，揭示了普通人不知道的 3 个关键事实：
+      </p>
+      <ul class="checklist">
+        <li><strong>真相 1：真实胜率其实不到 45%（非高胜率圣杯）：</strong>新手往往追求 80% 胜率，而 Martin 的核心武器是<strong>“极窄止损换取的超高不对称盈亏比（Asymmetric Risk-Reward）”</strong>。一只涨 25% 的股票，如果止损 3%，是 8R；如果买点精确到 1.5% 止损，就是 16R！即使输掉一半以上的交易，单笔 8R~15R 的暴利足以让净值曲线垂直拉升。</li>
+        <li><strong>真相 2：支撑共振的精髓是“诱空洗盘与极速收复 (Flush & Reclaim)”：</strong>盘中下影线瞬间刺破 21 EMA 或 AVWAP 往往是诱空扫掉散户止损盘（Flush），随后几分钟内大阳线强力收复（Reclaim）并突破前 K 高点，这才是全场胜率最高、庄家完成洗盘的黄金买点。</li>
+        <li><strong>真相 3：高资金周转率（Capital Velocity）：</strong>达到 3R 先卖掉一部分落袋为安，并将止损提到成本线（Breakeven），彻底消除了持仓风险（Free Ride），同时快速释放现金投入下一只标的。</li>
+      </ul>
+    </div>
+
+    <!-- 第一步：筛选强势股 -->
+    <div class="rule-section">
+      <div class="rule-sec-title">
+        <div class="rule-step-num">1</div> 第一步：筛出强势股，挑选正在整理、逐渐转强的股票
+      </div>
+      <p class="rule-text"><strong>【操作动作与量化标准】：</strong></p>
+      <ul class="checklist">
+        <li><strong>动量排序过滤：</strong>打开选股器，分别按近 1 个月、3 个月和 6 个月的涨幅排序，优先查看涨幅超过 30%、全市场排名靠前 20% 至 30% 的领头股票。</li>
+        <li><strong>流动性剔除：</strong>剔除成交稀少、换手极低的小票（防止盘中遭遇滑点和流动性黑洞）。</li>
+        <li><strong>板块群聚效应（Theme Momentum）：</strong>Martin 尤其关注热门题材中上涨较快的股票。当同一个板块有多只股票一起放量走强时，往往说明机构大资金正在集中抱团。</li>
+        <li><strong>多周期图表分析：</strong>先看周线，了解此前的上涨主升浪和回落幅度；再看日线里的收敛整理过程。</li>
+      </ul>
+      <div class="rule-highlight-box">
+        <strong>重点观察三件事（VCP 波动收缩形态）：</strong><br>
+        1. <strong>回调低点是否逐渐抬高（Higher Lows）：</strong>例如前一次回落到 18 美元止跌，这一次在 19 美元附近就止跌，说明买盘不断提前入场。<br>
+        2. <strong>上下波动是否越来越小：</strong>每天的实体和振幅持续缩小，伴随成交量萎缩，说明浮动筹码正在沉淀被锁死。<br>
+        3. <strong>均线支撑：</strong>股价是否重新站上开始走平或向上的 9 日、21 日 EMA（指数移动平均线）。
+      </div>
+      <div class="warning-box">
+        ⛔ <strong>绝对淘汰标准：</strong>如果股票的高点和低点都在向下下降，且股价依然被压在向下的均线之下，绝不符合这套回调买法的筛选方向，直接移出观察名单！
+      </div>
+    </div>
+
+    <!-- 第二步：标好支撑区域，等待买入信号 -->
+    <div class="rule-section">
+      <div class="rule-sec-title">
+        <div class="rule-step-num">2</div> 第二步：标好支撑区域，等待盘中买入扳机信号
+      </div>
+      <p class="rule-text">
+        选好标的后，绝不能闭着眼睛买，必须耐心等待价格回踩到关键支撑位的“共振区”，并在微观周期出现止跌反弹信号。
+      </p>
+      <ul class="checklist">
+        <li><strong>日线图关键指标组合：</strong>在日线上加载 9 EMA、21 EMA、50 EMA，标出前期高低点、未补的跳空缺口，以及高点 AVWAP。</li>
+        <li><strong>AVWAP（锚定成交量加权均价）的应用精髓：</strong>Martin 经常把 AVWAP 的起点锚定在整理区的阶段最高点，观察价格重新突破该线后，回踩能否在该线附近获得强有力支撑。</li>
+        <li><strong>关键共振区（Confluence Zone）：</strong>如果 <strong>AVWAP、21 日 EMA 和前期突破高点</strong> 重叠在相近的价格区间，这个区域就是重点伏击带。尤其关注突破后的<strong>“第一次回测（First Retest）”</strong>。</li>
+        <li><strong>微观周期扣动扳机：</strong>股价接近支撑时，切到 <strong>1分钟、5分钟或 15分钟图</strong>。先观察下探后的回升，再等价格向上突破前一根K线的高点，这就是精确入场扳机！</li>
+      </ul>
+      <div class="rule-highlight-box">
+        <strong>实战案例示范：</strong><br>
+        股价回踩 21 EMA 附近下探后开始回升，前一根 5 分钟 K 线的最高价是 20 美元。接下来盘中价格一旦突破 20 美元，就是立即入场的确认信号！
+      </div>
+      <div class="warning-box">
+        ⛔ <strong>纪律底线：</strong>如果价格一路击穿支撑毫无回升迹象，严禁主观猜底接飞刀，继续空仓等待！
+      </div>
+    </div>
+
+    <!-- 第三步：先定止损和仓位，再下单执行 -->
+    <div class="rule-section">
+      <div class="rule-sec-title">
+        <div class="rule-step-num">3</div> 第三步：先定止损和仓位，再下单执行（微试错数学模型）
+      </div>
+      <p class="rule-text">
+        这是普通交易者与冠军选手的最大分水岭。Martin 从不按“我感觉这只票能涨”来决定买多少股，而是<strong>严格由允许亏损的金额反推股数</strong>。
+      </p>
+      <div class="rule-formula-box">
+        1. 账户单笔风险预算 (Max Risk) = 账户总资金 × 0.5%<br>
+        2. 每股承担风险 (1R) = 计划买入价 - 严格止损价 (止损距离控制在 2.5% ~ 3.0%)<br>
+        3. 建议买入股数 = ⌊ Max Risk ÷ 1R ⌋
+      </div>
+      <div class="rule-highlight-box">
+        <strong>假设串联全流程计算（10,000 美元账户）：</strong><br>
+        • 账户总资金：$10,000，单笔最大允许亏损 0.5% = $50。<br>
+        • 计划在 $20.00 买入，止损设在突破 K 线的低点 $19.50。<br>
+        • 每股承担风险 = $20.00 - $19.50 = $0.50（止损幅度 2.5%）。<br>
+        • 应买股数 = $50 ÷ $0.50 = <strong>100 股</strong>。<br>
+        • 占用资金 = 100 × $20.00 = $2,000（占总资产 20%）。<br>
+        • <strong>入场后立即挂出 $19.50 的止损单，跌到这里坚决止损，绝不抗单！</strong>
+      </div>
+    </div>
+
+    <!-- 第四步：上涨后分批兑现，再跟踪剩余仓位 -->
+    <div class="rule-section">
+      <div class="rule-sec-title">
+        <div class="rule-step-num">4</div> 第四步：上涨后分批兑现，再跟踪剩余仓位（高期望值兑现）
+      </div>
+      <p class="rule-text">
+        为了实现暴利复利，盈利必须远大于亏损。Martin 采用的是典型的 <strong>R 倍数阶梯兑现法则</strong>：
+      </p>
+      <div class="rule-formula-box">
+        • 1R (每股初始风险) = $0.50<br>
+        • 3R 第一止盈目标 = 买入价 + (3 × 1R) = $20.00 + $1.50 = $21.50 (+7.5%)<br>
+        • 5R 趋势止盈目标 = 买入价 + (5 × 1R) = $20.00 + $2.50 = $22.50 (+12.5%)
+      </div>
+      <ul class="checklist">
+        <li><strong>分批止盈：</strong>当股价涨到 3R 目标时，卖掉 1/3 ~ 1/2 锁定第一笔胜局，并将止损线上移至成本价（零风险持仓）；涨到 5R 趋势目标时，进行二次减仓，并将止损线上移至 +3R 锁死大赢局，剩余底仓由 9 日 EMA 护航奔跑。</li>
+        <li><strong>均线跟踪：</strong>剩余仓位结合 9 日 EMA 和价格走势继续跟随。股价如果短时间内出现暴力拉升、明显远离均线，也会趁冲高主动减仓。</li>
+        <li><strong>实战代表作 AMPX：</strong>Martin 在开盘前关注 7.45 ~ 7.50 美元的支撑区域（均线与高点 AVWAP 汇聚于此）。开盘走高后回落到该区域，他等到 1 分钟 K 线向上突破后买入，随后趁冲高大幅分批兑现获利！</li>
+      </ul>
+    </div>
+
+
+    <!-- 深度进阶：持仓全生命周期六阶离场体系与 9 EMA 均线量化跟踪细节 -->
+    <div class="rule-section" style="border-left: 4px solid var(--accent);">
+      <div class="rule-sec-title">
+        <span style="color:var(--accent);">📐</span> 深度进阶：持仓全生命周期六阶离场体系与 9 EMA 均线量化跟踪细节
+      </div>
+      <p class="rule-text">
+        针对实战中“结合 9 日 EMA 跟踪”以及“短时间内远离均线主动减仓”，在冠军交易体系中有着极其严苛、机械化的全周期量化执行标准：
+      </p>
+      <ul class="checklist">
+        <li><strong>【阶段一：初始防守】</strong> 开仓买入后，止损单严格挂在设定价（入场价下方 2.5% ~ 3.0%），单笔最大总风险锁定在账户总资产的 0.5%，绝不心存侥幸主观抗单。</li>
+        <li><strong>【阶段二：平保保本 (Breakeven)】</strong> 当股价浮盈触及 1R（涨幅约 +2.5% ~ +3.0%）时，立即在券商软件中将止损线上移至买入成本价。此举彻底消除了本笔交易的本金风险，实现“零风险免费抽奖（Free Ride）”，杜绝任何赚钱单变成亏钱单。</li>
+        <li><strong>【阶段三：第一期望值兑现 (3R 减半)】</strong> 当股价涨幅达到 3R（约 +7.5% ~ +9.0%）时，坚决市价或挂单卖出 1/2 仓位，真金白银锁定首批利润；同时将剩余半仓的止损线上移至 +1R 位置，并迅速腾出账户现金额度投入下一个符合买点的新标的，提高资金年化周转率。</li>
+        <li><strong>【阶段四：波段趋势主升浪兑现 (5R 二次锁定)】</strong> 当股价继续冲刺达到 5R（约 +12.5% ~ +15.0%）时，再次减仓剩余半仓的 1/2，同时将最终底仓的止损线上移至 <strong>+3R</strong> 位置（无论行情如何剧烈回撤都已锁死至少 3R 大胜局），彻底释放心理压力，让极少数底仓博取 8R ~ 15R 超级大妖股行情。</li>
+        <li><strong>【阶段五：高潮极度乖离主动减仓 (Climax / Extreme Extension)】</strong> 量化判定门槛：<br>
+        • 量化公式：乖离率 = (当前现价 - 9 EMA) ÷ 9 EMA × 100%。<br>
+        • 大中盘股（如 NVDA、TSLA）：当盘中价格偏离 9 EMA 超过 12% ~ 15% 时；<br>
+        • 高弹性小盘股（如 AMPX、RKLB）：当盘中价格偏离 9 EMA 超过 20% ~ 25% 时；<br>
+        • 形态辅助：若走出 3~5 天垂直无回踩大阳线，且单日成交量达过去 20 日均量的 2~3 倍（高位爆巨量）；<br>
+        • 执行动作：此时处于极度狂热超买区，趁盘中流动性充裕放量急拉时，再主动减仓剩余仓位的 1/2，从容兑现利润，规避随后的剧烈踩踏均线回归。</li>
+        <li><strong>【阶段六：终极趋势终结清仓 (9 EMA 收盘保护)】</strong> 剩余底仓的最后退场防线：<br>
+        • 收盘价原则：盘中下影线刺穿 9 EMA 不予理会（防止被日内洗盘甩下车）；<br>
+        • 清仓触发：一旦某一天日线收盘价【正式收在 9 EMA 下方】，并在次日开盘跌破该阴线的最低价，宣告本轮波段主升浪彻底结束，剩余所有底仓全部坚决一键市价清仓！</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+const stocks = [{"symbol": "ACN", "industry": "IT Consulting and Other Services", "price": 229.68, "status": "BREAKOUT_TRIGGERED", "ema9": 213.84, "ema21": 202.59, "ema50": 189.63, "peak_date": "89", "peak_high": 231.36, "avwap": 228.33, "sup_low": 199.56, "sup_high": 231.76, "dist_ema21": 13.37, "dist_avwap": 0.59, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "CBOE", "industry": "Financial Exchanges and Data", "price": 314.98, "status": "BREAKOUT_TRIGGERED", "ema9": 297.95, "ema21": 288.98, "ema50": 286.14, "peak_date": "89", "peak_high": 315.56, "avwap": 312.4, "sup_low": 284.65, "sup_high": 317.08, "dist_ema21": 9.0, "dist_avwap": 0.83, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "DKS", "industry": "Other Specialty Retail", "price": 144.35, "status": "BREAKOUT_TRIGGERED", "ema9": 138.33, "ema21": 137.48, "ema50": 150.05, "peak_date": "89", "peak_high": 147.47, "avwap": 144.61, "sup_low": 135.42, "sup_high": 146.78, "dist_ema21": 5.0, "dist_avwap": -0.18, "higher_lows": true, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "IMBBY", "industry": "Tobacco", "price": 38.52, "status": "BREAKOUT_TRIGGERED", "ema9": 36.13, "ema21": 34.9, "ema50": 34.78, "peak_date": "89", "peak_high": 38.83, "avwap": 38.51, "sup_low": 34.37, "sup_high": 39.09, "dist_ema21": 10.39, "dist_avwap": 0.03, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "PBR", "industry": "Integrated Oil and Gas", "price": 26.0, "status": "BREAKOUT_TRIGGERED", "ema9": 24.92, "ema21": 23.44, "ema50": 21.55, "peak_date": "89", "peak_high": 26.1, "avwap": 25.84, "sup_low": 23.08, "sup_high": 26.23, "dist_ema21": 10.94, "dist_avwap": 0.62, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "TJX", "industry": "Apparel Retail", "price": 147.33, "status": "BREAKOUT_TRIGGERED", "ema9": 141.53, "ema21": 137.92, "ema50": 139.44, "peak_date": "89", "peak_high": 147.45, "avwap": 146.82, "sup_low": 135.85, "sup_high": 149.02, "dist_ema21": 6.83, "dist_avwap": 0.35, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "WIT", "industry": "IT Consulting and Other Services", "price": 1.95, "status": "BREAKOUT_TRIGGERED", "ema9": 1.79, "ema21": 1.75, "ema50": 1.79, "peak_date": "89", "peak_high": 1.98, "avwap": 1.95, "sup_low": 1.73, "sup_high": 1.98, "dist_ema21": 11.33, "dist_avwap": -0.0, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "AAPL", "industry": "核心关注池", "price": 343.46, "status": "IN_RETTEST_ZONE", "ema9": 340.19, "ema21": 336.52, "ema50": 328.87, "peak_date": "86", "peak_high": 348.15, "avwap": 343.79, "sup_low": 331.47, "sup_high": 348.94, "dist_ema21": 2.06, "dist_avwap": -0.1, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "价格正处于 21 EMA 与高点 AVWAP 支撑带，等待反弹买点信号"]}, {"symbol": "MAR", "industry": "Hotels, Resorts and Cruise Lines", "price": 388.05, "status": "IN_RETTEST_ZONE", "ema9": 372.73, "ema21": 363.01, "ema50": 358.6, "peak_date": "89", "peak_high": 394.74, "avwap": 390.11, "sup_low": 357.57, "sup_high": 395.97, "dist_ema21": 6.9, "dist_avwap": -0.53, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "价格正处于 21 EMA 与高点 AVWAP 支撑带，等待反弹买点信号"]}, {"symbol": "META", "industry": "核心关注池", "price": 709.33, "status": "IN_RETTEST_ZONE", "ema9": 730.8, "ema21": 717.95, "ema50": 677.7, "peak_date": "73", "peak_high": 779.82, "avwap": 738.09, "sup_low": 707.18, "sup_high": 749.16, "dist_ema21": -1.2, "dist_avwap": -3.9, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "价格正处于 21 EMA 与高点 AVWAP 支撑带，等待反弹买点信号"]}, {"symbol": "MPC", "industry": "Oil and Gas Refining and Marketing", "price": 478.07, "status": "IN_RETTEST_ZONE", "ema9": 462.66, "ema21": 438.11, "ema50": 399.58, "peak_date": "87", "peak_high": 485.22, "avwap": 478.02, "sup_low": 431.54, "sup_high": 485.19, "dist_ema21": 9.12, "dist_avwap": 0.01, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "价格正处于 21 EMA 与高点 AVWAP 支撑带，等待反弹买点信号"]}, {"symbol": "MSFT", "industry": "核心关注池", "price": 529.05, "status": "IN_RETTEST_ZONE", "ema9": 531.66, "ema21": 521.77, "ema50": 499.28, "peak_date": "86", "peak_high": 551.15, "avwap": 538.18, "sup_low": 513.94, "sup_high": 546.25, "dist_ema21": 1.39, "dist_avwap": -1.7, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "价格正处于 21 EMA 与高点 AVWAP 支撑带，等待反弹买点信号"]}, {"symbol": "TLN", "industry": "Independent Power and Renewable Electricity Producers", "price": 354.81, "status": "IN_RETTEST_ZONE", "ema9": 358.0, "ema21": 343.19, "ema50": 334.61, "peak_date": "85", "peak_high": 390.54, "avwap": 367.26, "sup_low": 338.04, "sup_high": 372.76, "dist_ema21": 3.39, "dist_avwap": -3.39, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "价格正处于 21 EMA 与高点 AVWAP 支撑带，等待反弹买点信号"]}, {"symbol": "AMZN", "industry": "核心关注池", "price": 250.0, "status": "WATCHING", "ema9": 254.62, "ema21": 254.3, "ema50": 253.88, "peak_date": "85", "peak_high": 263.7, "avwap": 255.5, "sup_low": 250.49, "sup_high": 259.33, "dist_ema21": -1.69, "dist_avwap": -2.15, "higher_lows": true, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "尚未回踩至支撑密集带，继续观察"]}, {"symbol": "CASY", "industry": "Food Retail", "price": 689.22, "status": "WATCHING", "ema9": 653.43, "ema21": 646.9, "ema50": 690.86, "peak_date": "61", "peak_high": 767.98, "avwap": 621.99, "sup_low": 612.66, "sup_high": 656.61, "dist_ema21": 6.54, "dist_avwap": 10.81, "higher_lows": true, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "尚未回踩至支撑密集带，继续观察"]}, {"symbol": "GOOGL", "industry": "核心关注池", "price": 340.59, "status": "WATCHING", "ema9": 347.39, "ema21": 346.51, "ema50": 346.31, "peak_date": "71", "peak_high": 364.17, "avwap": 346.59, "sup_low": 341.31, "sup_high": 351.79, "dist_ema21": -1.71, "dist_avwap": -1.73, "higher_lows": true, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "尚未回踩至支撑密集带，继续观察"]}, {"symbol": "PLTR", "industry": "核心关注池", "price": 186.03, "status": "WATCHING", "ema9": 197.37, "ema21": 192.57, "ema50": 179.92, "peak_date": "85", "peak_high": 212.94, "avwap": 201.02, "sup_low": 189.68, "sup_high": 204.03, "dist_ema21": -3.4, "dist_avwap": -7.45, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "尚未回踩至支撑密集带，继续观察"]}, {"symbol": "AMD", "industry": "核心关注池", "price": 528.75, "status": "BROKEN", "ema9": 583.07, "ema21": 585.17, "ema50": 556.36, "peak_date": "81", "peak_high": 658.52, "avwap": 595.6, "sup_low": 576.39, "sup_high": 604.53, "dist_ema21": -9.64, "dist_avwap": -11.22, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "ARM", "industry": "核心关注池", "price": 227.8, "status": "BROKEN", "ema9": 256.59, "ema21": 269.46, "ema50": 274.22, "peak_date": "72", "peak_high": 336.98, "avwap": 284.69, "sup_low": 265.42, "sup_high": 288.96, "dist_ema21": -15.46, "dist_avwap": -19.98, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "AVGO", "industry": "核心关注池", "price": 328.75, "status": "BROKEN", "ema9": 349.34, "ema21": 354.52, "ema50": 362.42, "peak_date": "81", "peak_high": 380.84, "avwap": 355.37, "sup_low": 349.2, "sup_high": 360.7, "dist_ema21": -7.27, "dist_avwap": -7.49, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "CRWD", "industry": "核心关注池", "price": 227.39, "status": "BROKEN", "ema9": 252.31, "ema21": 252.59, "ema50": 261.29, "peak_date": "81", "peak_high": 286.99, "avwap": 257.69, "sup_low": 248.8, "sup_high": 261.55, "dist_ema21": -9.98, "dist_avwap": -11.76, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "NVDA", "industry": "核心关注池", "price": 214.13, "status": "BROKEN", "ema9": 223.86, "ema21": 225.53, "ema50": 221.89, "peak_date": "81", "peak_high": 243.37, "avwap": 226.81, "sup_low": 222.15, "sup_high": 230.21, "dist_ema21": -5.05, "dist_avwap": -5.59, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "RKLB", "industry": "核心关注池", "price": 50.84, "status": "BROKEN", "ema9": 61.71, "ema21": 65.63, "ema50": 69.57, "peak_date": "81", "peak_high": 78.28, "avwap": 63.09, "sup_low": 62.14, "sup_high": 66.62, "dist_ema21": -22.54, "dist_avwap": -19.41, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "SMCI", "industry": "核心关注池", "price": 31.63, "status": "BROKEN", "ema9": 37.76, "ema21": 39.27, "ema50": 37.92, "peak_date": "82", "peak_high": 45.77, "avwap": 38.77, "sup_low": 38.18, "sup_high": 39.86, "dist_ema21": -19.46, "dist_avwap": -18.41, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "TSLA", "industry": "核心关注池", "price": 354.72, "status": "BROKEN", "ema9": 367.87, "ema21": 367.92, "ema50": 364.65, "peak_date": "84", "peak_high": 388.56, "avwap": 368.68, "sup_low": 362.4, "sup_high": 374.21, "dist_ema21": -3.59, "dist_avwap": -3.79, "higher_lows": true, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "跌穿关键支撑带，失去试错胜率"]}];
+let currentSymbol = 'NVDA';
+let currentPeriod = '5m';
+let currentSupLow = 0;
+let currentSupHigh = 999999;
+
+
+function switchMainTab(tabId) {
+  document.querySelectorAll('.main-tab-btn').forEach(b => b.classList.remove('active'));
+  const targetBtn = document.getElementById('tab-btn-' + tabId);
+  if (targetBtn) targetBtn.classList.add('active');
+
+  const wb = document.getElementById('tab-content-workbench');
+  const tr = document.getElementById('tab-content-tracking');
+  const log = document.getElementById('tab-content-log');
+  const hb = document.getElementById('tab-content-handbook');
+  if (wb) wb.style.display = (tabId === 'workbench') ? 'block' : 'none';
+  if (tr) tr.style.display = (tabId === 'tracking') ? 'block' : 'none';
+  if (log) log.style.display = (tabId === 'log') ? 'block' : 'none';
+  if (hb) hb.style.display = (tabId === 'handbook') ? 'block' : 'none';
+
+  try { sessionStorage.setItem('activeMartinTab', tabId); } catch(e) {}
+
+  if (tabId === 'tracking' || tabId === 'log') {
+    loadTradesJournal();
+  }
+}
+
+// 记录开仓买入
+function recordBuyTrade() {
+  const sym = document.getElementById('calc-sym').value.toUpperCase();
+  const entry = parseFloat(document.getElementById('calc-entry').value);
+  const stop = parseFloat(document.getElementById('calc-stop').value);
+  const shares = parseInt(document.getElementById('res-shares').innerText.replace(' 股', ''));
+
+  if (!shares || shares <= 0) {
+    alert("请先点击计算得出有效股数！");
+    return;
+  }
+
+  fetch('http://127.0.0.1:1098/api/trades/open', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ symbol: sym, entry_price: entry, stop_price: stop, shares: shares })
+  })
+  .then(r => r.json())
+  .then(data => {
+    alert("🎉 成功记入实盘持仓！系统将自动监控 1R 平保、3R 止盈与 9 EMA 乖离！");
+    loadTradesJournal();
+    switchMainTab('tracking');
+  })
+  .catch(e => alert("记入失败，请确保本地服务启动中！"));
+}
+
+// 记录卖出平仓
+function closeTradeAction(tradeId, isPartial, defaultPrice) {
+  const actionText = isPartial ? "【3R/5R 目标达成：建议阶梯减半仓锁定利润】" : "【全平清仓离场】";
+  const p = prompt(actionText + " 请输入实际成交平仓价格 (USD):", defaultPrice);
+  if (!p) return;
+  const closePrice = parseFloat(p);
+  if (isNaN(closePrice) || closePrice <= 0) return;
+
+  fetch('http://127.0.0.1:1098/api/trades/close', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: tradeId, close_price: closePrice, is_partial: isPartial })
+  })
+  .then(r => r.json())
+  .then(data => {
+    alert("✅ 平仓操作已成功记录并归档至【交易日志】！");
+    loadTradesJournal();
+    switchMainTab('log');
+  })
+  .catch(e => alert("平仓记录失败！"));
+}
+
+// 加载并渲染持仓与日志
+
+// 容错机制：删除未实际买入的误记持仓（二次确认）
+function deleteActiveTrade(tradeId, symbol) {
+  if (!confirm("⚠️ 确定要移除误选的【" + symbol + "】吗？此功能仅用于未实际买入的情况。")) {
+    return;
+  }
+  if (!confirm("🚨 二次确认：确定直接从在手持仓中删除【" + symbol + "】吗？")) {
+    return;
+  }
+  fetch('http://127.0.0.1:1098/api/trades/delete_active', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: tradeId })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.status === 'success') {
+      alert("✅ 已成功移除【" + symbol + "】误记持仓！");
+      loadTradesJournal();
+    } else {
+      alert("❌ 无法删除：" + (data.message || "未知错误"));
+    }
+  })
+  .catch(e => alert("移除失败，请确保本地行情服务启动中！"));
+}
+
+// 单条删除历史平仓记录（二次确认）
+function deleteClosedTrade(recordId, symbol) {
+  if (!confirm("⚠️ 确定要删除【" + symbol + "】这条历史平仓记录吗？")) {
+    return;
+  }
+  if (!confirm("🚨 二次确认：确定彻底删除【" + symbol + "】的测试记录？删除后无法找回！")) {
+    return;
+  }
+  fetch('http://127.0.0.1:1098/api/trades/delete_closed', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: recordId, clear_all: false })
+  })
+  .then(r => r.json())
+  .then(data => {
+    alert("✅ 已成功删除【" + symbol + "】平仓记录！");
+    loadTradesJournal();
+  })
+  .catch(e => alert("删除失败，请确保本地服务启动中！"));
+}
+
+function loadTradesJournal() {
+  fetch('http://127.0.0.1:1098/api/trades/list')
+    .then(r => r.json())
+    .then(data => {
+      const container = document.getElementById('active-positions-container');
+      const countBadge = document.getElementById('tab-active-count');
+      const closedBadge = document.getElementById('tab-closed-count');
+      const syncStatusEl = document.getElementById('tracking-sync-status');
+      const active = data.active || [];
+      const closed = data.closed || [];
+      if (countBadge) countBadge.innerText = active.length;
+      if (closedBadge) closedBadge.innerText = closed.length;
+      if (syncStatusEl) {
+        const nowStr = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+        syncStatusEl.innerHTML = '🟢 30秒静默监控运行中 · 刚刚刷新 ' + nowStr;
+      }
+      checkTradeAlertsAndChime(active);
+
+      container.innerHTML = '';
+      if (active.length === 0) {
+        container.innerHTML = '<div style="color:var(--text-muted); font-size:14px; padding:20px; grid-column:1/-1;">当前暂无在手持仓。你可以在【选股分析平台】算完仓位后点击绿色按钮一键记入！</div>';
+      } else {
+        active.forEach(t => {
+          const is5R = (t.r_mult >= 5.0);
+          const is3R = (t.r_mult >= 3.0);
+          const is1R = (t.r_mult >= 1.0);
+          const isStopHit = (t.current_price <= t.stop_price);
+          const isClimax = (t.ema9_dist >= 14.0);
+
+          let alertBanner = '';
+          if (isStopHit) {
+            alertBanner = '<div style="background:rgba(239,68,68,0.2); color:#f87171; border:1px solid #dc2626; padding:8px 10px; border-radius:6px; font-weight:700; font-size:12px; margin-bottom:10px;">⛔ 已触及止损价！严格按计划离场，切勿抗单！</div>';
+          } else if (isClimax) {
+            alertBanner = '<div style="background:rgba(245,158,11,0.2); color:#fbbf24; border:1px solid #f59e0b; padding:8px 10px; border-radius:6px; font-weight:700; font-size:12px; margin-bottom:10px;">🚀 偏离 9 EMA 超 ' + t.ema9_dist + '%！高潮狂热拉升，建议趁急冲主动减仓！</div>';
+          } else if (is5R) {
+            alertBanner = '<div style="background:rgba(234,179,8,0.2); color:#facc15; border:1px solid #eab308; padding:8px 10px; border-radius:6px; font-weight:700; font-size:12px; margin-bottom:10px;">🏆 5R 趋势波段达成 (+' + t.r_mult + 'R)！建议二次减仓，止损线上移至 +3R，底仓沿 9 EMA 跟踪超级主升浪！</div>';
+          } else if (is3R) {
+            alertBanner = '<div style="background:rgba(34,197,94,0.2); color:#4ade80; border:1px solid #22c55e; padding:8px 10px; border-radius:6px; font-weight:700; font-size:12px; margin-bottom:10px;">🎯 3R 目标达成 (+' + t.r_mult + 'R)！强烈建议卖出 1/2 仓位锁定胜局，腾出现金滚复利！</div>';
+          } else if (is1R) {
+            alertBanner = '<div style="background:rgba(56,189,248,0.2); color:#38bdf8; border:1px solid #0284c7; padding:8px 10px; border-radius:6px; font-weight:600; font-size:12px; margin-bottom:10px;">🛡️ 浮盈已达 1R！请在券商App将止损移至成本价 $' + t.entry_price + ' (保本平保)！</div>';
+          }
+
+          const card = document.createElement('div');
+          card.style.background = '#0b1120';
+          card.style.border = is5R ? '2px solid #eab308' : (is3R ? '2px solid #22c55e' : (isClimax ? '2px solid #f59e0b' : '1px solid var(--border)'));
+          card.style.borderRadius = '10px';
+          card.style.padding = '16px';
+
+          card.innerHTML = `
+            ${alertBanner}
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <div>
+                <strong style="font-size:18px; color:#fff;">${t.symbol}</strong>
+                <span style="font-size:11px; color:var(--text-muted); margin-left:8px;">${t.open_time} 买入</span>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:16px; font-weight:700; color:${t.pnl >= 0 ? '#4ade80' : '#f87171'};">
+                  ${t.pnl >= 0 ? '+' : ''}$${t.pnl} (${t.pnl_pct >= 0 ? '+' : ''}${t.pnl_pct}%)
+                </div>
+                <div style="font-size:12px; font-weight:600; color:${t.r_mult >= 0 ? '#38bdf8' : '#f87171'};">
+                  当前收益: ${t.r_mult >= 0 ? '+' : ''}${t.r_mult} R
+                </div>
+              </div>
+            </div>
+
+            <div style="font-size:12px; color:var(--text-muted); line-height:1.7; margin-bottom:12px;">
+              <div>持仓股数: <strong style="color:#fff;">${t.shares} 股</strong> | 买入均价: <strong style="color:#fff;">$${Number(t.entry_price).toFixed(2)}</strong></div>
+              <div>当前现价: <strong style="color:#fff;">$${Number(t.current_price).toFixed(2)}</strong> | 当前止损线: <strong style="color:#f87171;">$${Number(t.stop_price).toFixed(2)}</strong></div>
+              <div>3R 目标: <strong style="color:#4ade80;">$${Number(t.target_3r).toFixed(2)}</strong> | 5R 目标: <strong style="color:#facc15;">$${Number(t.target_5r).toFixed(2)}</strong> | 9 EMA 偏离: <strong style="color:${t.ema9_dist > 10 ? '#f59e0b' : '#38bdf8'};">${t.ema9_dist > 0 ? '+' : ''}${t.ema9_dist}%</strong></div>
+            </div>
+
+            <div style="display:flex; gap:8px;">
+              ${!t.partial_sold ? `<button class="calc-btn" style="flex:2; background:#0284c7; padding:8px 0; font-size:12px;" onclick="closeTradeAction('${t.id}', true, ${t.current_price})">💰 3R/5R阶梯减半仓</button>` : `<button class="calc-btn" style="flex:2; background:#475569; padding:8px 0; font-size:12px; cursor:default;">已锁半仓</button>`}
+              <button class="calc-btn" style="flex:2; background:#ef4444; padding:8px 0; font-size:12px;" onclick="closeTradeAction('${t.id}', false, ${t.current_price})">🛑 全平清仓</button>
+              ${!t.partial_sold ? `<button class="calc-btn" style="flex:1; background:#334155; color:#cbd5e1; padding:8px 0; font-size:12px;" onclick="deleteActiveTrade('${t.id}', '${t.symbol}')" title="未实际买入时的误操作撤销">🗑️ 误入删除</button>` : ''}
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      }
+
+      // 渲染平仓日志
+      const tbody = document.getElementById('closed-trades-tbody');
+      tbody.innerHTML = '';
+      if (closed.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="color:var(--text-muted); padding:16px;">暂无历史平仓记录。</td></tr>';
+      } else {
+        closed.forEach(c => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${c.symbol}</strong></td>
+            <td style="color:var(--text-muted); font-size:11px;">${c.close_time || '-'}</td>
+            <td>$${c.entry_price}</td>
+            <td>$${c.close_price}</td>
+            <td>${c.shares} 股</td>
+            <td style="color:${c.pnl >= 0 ? '#4ade80' : '#f87171'}; font-weight:700;">
+              ${c.pnl >= 0 ? '+' : ''}$${c.pnl}
+            </td>
+            <td style="color:${c.captured_r >= 0 ? '#38bdf8' : '#f87171'}; font-weight:700;">
+              ${c.captured_r >= 0 ? '+' : ''}${c.captured_r} R
+            </td>
+            <td><span class="badge" style="background:#334155; color:#f8fafc;">${c.action || '平仓'}</span></td>
+            <td style="text-align:center;">
+              <button class="calc-btn" style="background:#dc2626; padding:3px 8px; font-size:11px; width:auto; display:inline-block; margin:0 auto;" onclick="deleteClosedTrade('${c.id}', '${c.symbol}')">🗑️ 删除</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    })
+    .catch(e => console.error(e));
+}
+
+function renderTable() {
+  const tbody = document.getElementById('stock-tbody');
+  tbody.innerHTML = '';
+  stocks.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.id = 'row-' + s.symbol;
+    tr.onclick = () => selectStock(s);
+    let badgeClass = 'badge-watch';
+    let statusText = '⏳ 观察中';
+    if(s.status === 'BREAKOUT_TRIGGERED') { badgeClass = 'badge-trigger'; statusText = '🔥 突破触发'; }
+    else if(s.status === 'IN_RETTEST_ZONE') { badgeClass = 'badge-zone'; statusText = '👀 支撑回踩'; }
+    else if(s.status === 'BROKEN') { badgeClass = 'badge-broken'; statusText = '❌ 破位转弱'; }
+
+    tr.innerHTML = `
+      <td><strong>${s.symbol}</strong></td>
+      <td style="color:var(--text-muted); font-size:12px;">${s.industry}</td>
+      <td>$${s.price}</td>
+      <td>$${s.ema21}</td>
+      <td>$${s.avwap}</td>
+      <td style="color:var(--text-muted);">$${s.sup_low} ~ $${s.sup_high}</td>
+      <td><span class="badge ${badgeClass}">${statusText}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function selectStock(s) {
+  currentSymbol = s.symbol;
+  currentSupLow = s.sup_low;
+  currentSupHigh = s.sup_high;
+  document.getElementById('current-focus-sym').innerText = s.symbol;
+  document.querySelectorAll('tr').forEach(r => r.classList.remove('active-row'));
+  const row = document.getElementById('row-' + s.symbol);
+  if(row) row.classList.add('active-row');
+
+  document.getElementById('calc-sym').value = s.symbol;
+  document.getElementById('calc-entry').value = s.price;
+  const stop = (s.price * 0.973).toFixed(2);
+  document.getElementById('calc-stop').value = stop;
+
+  fetchIntraday(currentSymbol, currentPeriod);
+  calculateRisk();
+}
+
+function switchTimeframe(period) {
+  currentPeriod = period;
+  document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tf-' + period).classList.add('active');
+  fetchIntraday(currentSymbol, currentPeriod);
+}
+
+function fetchIntraday(sym, period) {
+  const box = document.getElementById('intraday-status-box');
+  const container = document.getElementById('kline-container');
+  box.className = 'trigger-status-box';
+  box.innerText = '正在调取 ' + sym + ' ' + period + ' K线并检测诱空收复扳机...';
+  container.innerHTML = '';
+
+  const url = 'http://127.0.0.1:1098/api/intraday?symbol=' + sym + '&period=' + period + '&sup_low=' + currentSupLow + '&sup_high=' + currentSupHigh;
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      if (data.is_flush_reclaim) {
+        box.className = 'trigger-status-box trigger-gold';
+      } else if (data.is_breakout) {
+        box.className = 'trigger-status-box trigger-active';
+      } else {
+        box.className = 'trigger-status-box trigger-waiting';
+      }
+      box.innerText = data.status_text;
+
+      if (data.suggested_stop > 0 && data.suggested_stop < data.latest_price) {
+        document.getElementById('calc-stop').value = data.suggested_stop.toFixed(2);
+        document.getElementById('calc-entry').value = data.latest_price.toFixed(2);
+        calculateRisk();
+      }
+
+      if (data.bars && data.bars.length > 0) {
+        data.bars.forEach((b, idx) => {
+          const isUp = b.close >= b.open;
+          const isTrigger = (idx === data.bars.length - 2);
+          const barDiv = document.createElement('div');
+          barDiv.className = 'kline-bar ' + (isUp ? 'up' : 'down');
+          if (isTrigger) barDiv.style.border = '2px dashed var(--accent)';
+          barDiv.innerHTML = `
+            <div class="bar-time">${b.time}</div>
+            <div class="bar-price">$${b.close}</div>
+            <div style="font-size:9px; color:var(--text-muted);">${isTrigger ? '扳机K' : 'H:' + b.high}</div>
+          `;
+          container.appendChild(barDiv);
+        });
+      }
+    })
+    .catch(err => {
+      box.className = 'trigger-status-box';
+      box.innerText = '分时数据获取失败，请确保本地服务启动中。';
+    });
+}
+
+function calculateRisk() {
+  const sym = document.getElementById('calc-sym').value;
+  const capital = parseFloat(document.getElementById('calc-capital').value);
+  const entry = parseFloat(document.getElementById('calc-entry').value);
+  const stop = parseFloat(document.getElementById('calc-stop').value);
+  const riskPct = parseFloat(document.getElementById('calc-risk').value);
+
+  if(stop >= entry) {
+    alert("止损价必须严格低于买入价！");
+    return;
+  }
+
+  const perShareRisk = entry - stop;
+  const stopPct = ((perShareRisk / entry) * 100);
+  const maxLoss = capital * (riskPct / 100);
+  const shares = Math.floor(maxLoss / perShareRisk);
+  const cost = shares * entry;
+
+  const target1R = entry + perShareRisk;
+  const target3R = entry + (3 * perShareRisk);
+  const target5R = entry + (5 * perShareRisk);
+
+  document.getElementById('res-shares').innerText = shares + " 股";
+  document.getElementById('res-stop-pct').innerText = stopPct.toFixed(2) + "%";
+  document.getElementById('res-cost').innerText = "$" + cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " (" + ((cost/capital)*100).toFixed(1) + "%)";
+  document.getElementById('res-1r').innerText = "$" + perShareRisk.toFixed(2);
+  document.getElementById('res-max-loss').innerText = "-$" + maxLoss.toFixed(2);
+  document.getElementById('res-3r').innerText = "$" + target3R.toFixed(2) + " (+" + (stopPct*3).toFixed(1) + "%)";
+  document.getElementById('res-5r').innerText = "$" + target5R.toFixed(2) + " (+" + (stopPct*5).toFixed(1) + "%)";
+
+  // 更新动态平保路线图
+  document.getElementById('trail-init').innerText = "$" + stop.toFixed(2) + " (-" + stopPct.toFixed(2) + "%)";
+  document.getElementById('trail-breakeven').innerText = "涨到 $" + target1R.toFixed(2) + " 时移至成本价 $" + entry.toFixed(2);
+  document.getElementById('trail-lock').innerText = "涨到 $" + target3R.toFixed(2) + " 时减半仓，止损移至 $" + target1R.toFixed(2);
+
+  const warnEl = document.getElementById('res-warn');
+  if(stopPct > 3.0) {
+    warnEl.innerText = "⚠️ 提示：止损距离 " + stopPct.toFixed(2) + "% 超过 Martin 建议的 2.5%~3.0% 带宽，单笔波动偏大！";
+    warnEl.style.color = "var(--yellow)";
+  } else {
+    warnEl.innerText = "✅ 风控合规：止损距离符合极小试错成本标准。";
+    warnEl.style.color = "#4ade80";
+  }
+
+  document.getElementById('calc-result').style.display = 'block';
+}
+
+// 告警提示音与防重复告警
+const alertedTradesSet = new Set();
+function checkTradeAlertsAndChime(trades) {
+  trades.forEach(t => {
+    const isStop = (t.current_price <= t.stop_price);
+    const is3R = (t.r_mult >= 3.0 && !t.partial_sold);
+    const is5R = (t.r_mult >= 5.0);
+    const stopKey = t.id + '_stop';
+    const r3Key = t.id + '_3r';
+    const r5Key = t.id + '_5r';
+
+    if (isStop && !alertedTradesSet.has(stopKey)) {
+      alertedTradesSet.add(stopKey);
+      playAlarmSound('stop');
+    } else if (is5R && !alertedTradesSet.has(r5Key)) {
+      alertedTradesSet.add(r5Key);
+      playAlarmSound('profit');
+    } else if (is3R && !alertedTradesSet.has(r3Key)) {
+      alertedTradesSet.add(r3Key);
+      playAlarmSound('profit');
+    }
+  });
+}
+
+function playAlarmSound(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    if (type === 'profit') {
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    } else {
+      osc.frequency.setValueAtTime(320, ctx.currentTime);
+      osc.frequency.setValueAtTime(220, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    }
+  } catch(e) {}
+}
+
+// 5分钟股票大池倒计时与自动同步
+let poolSecondsRemaining = 300;
+let poolTimerInterval = null;
+
+function startPoolCountdown() {
+  if (poolTimerInterval) clearInterval(poolTimerInterval);
+  poolTimerInterval = setInterval(() => {
+    poolSecondsRemaining--;
+    if (poolSecondsRemaining <= 0) {
+      poolSecondsRemaining = 300;
+      triggerServerRefresh(true);
+    }
+    const cdEl = document.getElementById('pool-countdown');
+    if (cdEl) {
+      const m = String(Math.floor(poolSecondsRemaining / 60)).padStart(2, '0');
+      const s = String(poolSecondsRemaining % 60).padStart(2, '0');
+      cdEl.innerText = m + ':' + s;
+    }
+  }, 1000);
+}
+
+function triggerServerRefresh(isAuto) {
+  const btn = document.getElementById('refresh-btn');
+  const txt = document.getElementById('refresh-text');
+  const icon = document.getElementById('refresh-icon');
+
+  if (btn.classList.contains('loading')) return;
+
+  poolSecondsRemaining = 300;
+  btn.className = 'btn-refresh loading';
+  icon.innerText = '⏳';
+  txt.innerText = isAuto ? '长桥自动定时同步中...' : '长桥选股与并发计算中...';
+
+  let pollCount = 0;
+  const maxPolls = 30;
+
+  fetch('http://127.0.0.1:1098/api/refresh')
+    .then(r => r.json())
+    .then(data => {
+      const timer = setInterval(() => {
+        pollCount++;
+        fetch('http://127.0.0.1:1098/api/status')
+          .then(res => res.json())
+          .then(st => {
+            if (!st.refreshing) {
+              clearInterval(timer);
+              btn.className = 'btn-refresh success';
+              icon.innerText = '✅';
+              txt.innerText = isAuto ? '已自动同步最新选股！' : '选股与行情更新成功！';
+              setTimeout(() => {
+                btn.className = 'btn-refresh';
+                icon.innerText = '🔄';
+                txt.innerText = '一键更新选股与行情';
+                location.reload();
+              }, 1200);
+            } else if (pollCount >= maxPolls) {
+              clearInterval(timer);
+              btn.className = 'btn-refresh';
+              icon.innerText = '🔄';
+              txt.innerText = '一键更新选股与行情';
+              if (!isAuto) alert("请求超时，请检查网络或重新点击！");
+            }
+          })
+          .catch(() => {
+            clearInterval(timer);
+            btn.className = 'btn-refresh';
+            icon.innerText = '🔄';
+            txt.innerText = '一键更新选股与行情';
+          });
+      }, 1500);
+    })
+    .catch(err => {
+      btn.className = 'btn-refresh';
+      icon.innerText = '🔄';
+      txt.innerText = '一键更新选股与行情';
+      if (!isAuto) alert("💡 无法连接到本地行情服务！请双击【启动看板服务.command】打开看板。");
+    });
+}
+
+// 30秒持仓静默自动监控定时器
+setInterval(() => {
+  loadTradesJournal();
+}, 30000);
+
+window.onload = () => {
+  renderTable();
+  startPoolCountdown();
+  if (stocks.length > 0) {
+    selectStock(stocks[0]);
+  } else {
+    calculateRisk();
+  }
+  const validTabs = ['workbench', 'tracking', 'log', 'handbook'];
+  let savedTab = 'workbench';
+  try { savedTab = sessionStorage.getItem('activeMartinTab') || 'workbench'; } catch(e) {}
+  if (savedTab === 'journal') savedTab = 'tracking';
+  if (validTabs.includes(savedTab)) {
+    switchMainTab(savedTab);
+  } else {
+    switchMainTab('workbench');
+  }
+  loadTradesJournal();
+};
+</script>
+</body>
+</html>
