@@ -37,7 +37,9 @@ weekly-report-*.md
 monthly-dca-plan.md
 fetch_*.py
 get_*.py
-ibkr_*.py
+ibkr_last_bars.py
+ibkr_quotes.py
+ibkr_readonly_test.py
 parse_*.py
 process_market.py
 full_analysis.py

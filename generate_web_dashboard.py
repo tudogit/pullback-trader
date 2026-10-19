@@ -485,9 +485,19 @@ def build_dashboard():
         </div>
 
         <div id="res-warn" style="color:var(--yellow); font-size:12px; margin-top:8px;"></div>
-        <button class="calc-btn" style="margin-top:14px; background:#16a34a;" onclick="recordBuyTrade()">
-          📥 按照此方案记入【交易跟踪平台】
-        </button>
+        <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+          <button class="calc-btn" style="flex:1; background:linear-gradient(135deg, #0284c7, #2563eb); min-width:200px; padding:10px 12px;" onclick="placeIbkrOrder()">
+            🤖 发送至 IBKR 模拟盘买入 (附带 3R 止盈 + 3% 止损)
+          </button>
+          <button class="calc-btn" style="flex:1; background:#16a34a; min-width:160px; padding:10px 12px;" onclick="recordBuyTrade()">
+            📥 仅记入【交易跟踪平台】
+          </button>
+        </div>
+        <div id="ibkr-status-banner" style="font-size:11px; margin-top:10px; color:#94a3b8; display:flex; align-items:center; gap:6px;">
+          <span>IBKR 模拟盘状态:</span>
+          <span id="ibkr-conn-badge" style="background:#334155; color:#cbd5e1; padding:2px 8px; border-radius:4px; font-weight:600;">检测中...</span>
+          <a href="javascript:void(0)" onclick="checkIbkrStatus()" style="color:#38bdf8; text-decoration:none; margin-left:6px;">[重新检测]</a>
+        </div>
       </div>
     </div>
   </div>
@@ -800,6 +810,100 @@ function switchMainTab(tabId) {{
 }}
 
 // 记录开仓买入
+function checkIbkrStatus() {{
+  const badge = document.getElementById('ibkr-conn-badge');
+  if (badge) badge.innerText = '正在检测...';
+  fetch('http://127.0.0.1:1098/api/ibkr/status')
+    .then(r => r.json())
+    .then(data => {{
+      if (badge) {{
+        if (data.connected) {{
+          badge.style.background = 'rgba(34, 197, 94, 0.2)';
+          badge.style.color = '#4ade80';
+          badge.innerText = '🟢 已连接 (端口 ' + data.port + ' | 账户 ' + data.account_id + ' | 净值 $' + Number(data.net_liquidation).toLocaleString() + ')';
+        }} else {{
+          badge.style.background = 'rgba(239, 68, 68, 0.2)';
+          badge.style.color = '#f87171';
+          badge.innerText = '🔴 未连接 (TWS/IB Gateway 未启动)';
+        }}
+      }}
+    }})
+    .catch(() => {{
+      if (badge) {{
+        badge.style.background = 'rgba(239, 68, 68, 0.2)';
+        badge.style.color = '#f87171';
+        badge.innerText = '🔴 本地服务未响应';
+      }}
+    }});
+}}
+
+function placeIbkrOrder() {{
+  const sym = document.getElementById('calc-sym').value.toUpperCase();
+  const entry = parseFloat(document.getElementById('calc-entry').value);
+  const stop = parseFloat(document.getElementById('calc-stop').value);
+  const cap = parseFloat(document.getElementById('calc-cap').value);
+  const risk = parseFloat(document.getElementById('calc-risk').value);
+
+  if (!sym || !entry || !stop) {{
+    alert("请先填写或在左侧选择有效的股票与价格参数！");
+    return;
+  }}
+
+  if (stop >= entry) {{
+    alert("止损价必须严格低于买入价！");
+    return;
+  }}
+
+  const lossPct = ((entry - stop) / entry) * 100;
+  if (lossPct > 3.5) {{
+    alert("⚠️ 当前止损幅度为 " + lossPct.toFixed(2) + "%，超过了 Martin Luk 冠军战法 ≤ 3% 的窄止损铁律！请重新调整进场点。");
+    return;
+  }}
+
+  const r3Price = (entry + 3 * (entry - stop)).toFixed(2);
+  const br = String.fromCharCode(10);
+  const confirmMsg = "🚀 确认向 IBKR 模拟盘发送【" + sym + "】括号单吗？" + br + br +
+    "• 买入参考价: $" + entry + br +
+    "• 硬止损价: $" + stop + " (-" + lossPct.toFixed(2) + "%)" + br +
+    "• 3R 减半仓止盈价: $" + r3Price + br +
+    "• 单笔微试错风险: 账户的 " + risk + "%";
+
+  if (!confirm(confirmMsg)) {{
+    return;
+  }}
+
+  fetch('http://127.0.0.1:1098/api/ibkr/buy', {{
+    method: 'POST',
+    headers: {{ 'Content-Type': 'application/json' }},
+    body: JSON.stringify({{
+      symbol: sym,
+      entry_price: entry,
+      stop_price: stop,
+      account_capital: cap,
+      risk_budget_pct: risk
+    }})
+  }})
+  .then(r => r.json())
+  .then(data => {{
+    if (data.status === 'success') {{
+      const br = String.fromCharCode(10);
+      const alertMsg = "🎉 成功提交至 IBKR 模拟盘！" + br + br +
+        "• 成交股数: " + data.shares + " 股" + br +
+        "• 硬止损单 ID: " + data.stop_order_id + " (GTC)" + br +
+        "• 3R 止盈单 ID: " + data.tp_order_id + br + br +
+        "系统已自动同步记入【交易跟踪平台】！";
+      alert(alertMsg);
+      loadTradesJournal();
+      switchMainTab('tracking');
+    }} else {{
+      alert("❌ IBKR 模拟盘下单失败: " + (data.message || "未知错误，请检查 TWS 是否开启模拟交易！"));
+    }}
+  }})
+  .catch(err => {{
+    alert("下单请求失败，请确保本地行情服务启动中！");
+  }});
+}}
+
 function recordBuyTrade() {{
   const sym = document.getElementById('calc-sym').value.toUpperCase();
   const entry = parseFloat(document.getElementById('calc-entry').value);
@@ -1290,6 +1394,7 @@ setInterval(() => {{
 window.onload = () => {{
   renderTable();
   startPoolCountdown();
+  checkIbkrStatus();
   if (stocks.length > 0) {{
     selectStock(stocks[0]);
   }} else {{

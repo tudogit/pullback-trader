@@ -18,6 +18,7 @@ import threading
 import urllib.parse
 from datetime import datetime
 import pandas as pd
+from ibkr_trader import trader, asdict
 
 PORT = 1098
 BASE_DIR = "/Users/tudo/Documents/Codex/Stock-Research"
@@ -211,6 +212,50 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps({"status": "success", "message": "已成功移除误记持仓"}).encode("utf-8"))
             return
 
+        # 5. 发送括号单至 IBKR 模拟账户
+        elif path == "/api/ibkr/buy":
+            sym = params.get("symbol", "").upper().split(".")[0]
+            entry = float(params.get("entry_price", 0))
+            stop = float(params.get("stop_price", 0))
+            capital = float(params.get("account_capital", 0))
+            risk_budget = float(params.get("risk_budget_pct", 0.5))
+            
+            res = trader.place_martin_order(
+                symbol=sym,
+                entry_price=entry,
+                stop_price=stop,
+                account_equity=capital if capital > 0 else None,
+                risk_budget_pct=risk_budget
+            )
+            
+            # 若下单成功，同步自动记入本地在手持仓追踪
+            if res.status == "success":
+                with lock:
+                    data = load_trades()
+                    new_trade = {
+                        "id": f"T{int(datetime.now().timestamp()*1000)}",
+                        "symbol": sym,
+                        "entry_price": res.entry_price,
+                        "stop_price": res.stop_price,
+                        "shares": res.shares,
+                        "open_time": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                        "per_share_risk": res.per_share_risk,
+                        "target_1r": res.target_1r,
+                        "target_3r": res.target_3r,
+                        "target_5r": res.target_5r,
+                        "status": "OPEN",
+                        "partial_sold": False,
+                        "ibkr_order_id": res.parent_order_id
+                    }
+                    data["active"].append(new_trade)
+                    save_trades(data)
+
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(asdict(res)).encode("utf-8"))
+            return
+
         super().do_POST()
 
     def do_GET(self):
@@ -331,6 +376,15 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(resp)
+            return
+
+        # 检查 IBKR 模拟账户连接状态与资金
+        elif path == "/api/ibkr/status":
+            st = trader.get_account_status()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(asdict(st)).encode("utf-8"))
             return
 
         elif path == "/api/intraday":

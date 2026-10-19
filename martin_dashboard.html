@@ -156,7 +156,7 @@
 <div class="header">
   <div class="title">
     <h1>📈 强势股回调交易系统</h1>
-    <p>最近更新: <span id="update-time">2026-10-17 15:35:09</span></p>
+    <p>最近更新: <span id="update-time">2026-10-19 21:02:59</span></p>
   </div>
   <div class="header-actions">
     <div class="rule-badge">核心纪律：账户风险 ≤ 0.5% | 窄止损 ≤ 3% | 1R 保本 · 3R 锁利 · 5R 奔跑</div>
@@ -377,9 +377,19 @@
         </div>
 
         <div id="res-warn" style="color:var(--yellow); font-size:12px; margin-top:8px;"></div>
-        <button class="calc-btn" style="margin-top:14px; background:#16a34a;" onclick="recordBuyTrade()">
-          📥 按照此方案记入【交易跟踪平台】
-        </button>
+        <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+          <button class="calc-btn" style="flex:1; background:linear-gradient(135deg, #0284c7, #2563eb); min-width:200px; padding:10px 12px;" onclick="placeIbkrOrder()">
+            🤖 发送至 IBKR 模拟盘买入 (附带 3R 止盈 + 3% 止损)
+          </button>
+          <button class="calc-btn" style="flex:1; background:#16a34a; min-width:160px; padding:10px 12px;" onclick="recordBuyTrade()">
+            📥 仅记入【交易跟踪平台】
+          </button>
+        </div>
+        <div id="ibkr-status-banner" style="font-size:11px; margin-top:10px; color:#94a3b8; display:flex; align-items:center; gap:6px;">
+          <span>IBKR 模拟盘状态:</span>
+          <span id="ibkr-conn-badge" style="background:#334155; color:#cbd5e1; padding:2px 8px; border-radius:4px; font-weight:600;">检测中...</span>
+          <a href="javascript:void(0)" onclick="checkIbkrStatus()" style="color:#38bdf8; text-decoration:none; margin-left:6px;">[重新检测]</a>
+        </div>
       </div>
     </div>
   </div>
@@ -663,7 +673,7 @@
 </div>
 
 <script>
-const stocks = [{"symbol": "ACN", "industry": "IT Consulting and Other Services", "price": 229.68, "status": "BREAKOUT_TRIGGERED", "ema9": 213.84, "ema21": 202.59, "ema50": 189.63, "peak_date": "89", "peak_high": 231.36, "avwap": 228.33, "sup_low": 199.56, "sup_high": 231.76, "dist_ema21": 13.37, "dist_avwap": 0.59, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "CBOE", "industry": "Financial Exchanges and Data", "price": 314.98, "status": "BREAKOUT_TRIGGERED", "ema9": 297.95, "ema21": 288.98, "ema50": 286.14, "peak_date": "89", "peak_high": 315.56, "avwap": 312.4, "sup_low": 284.65, "sup_high": 317.08, "dist_ema21": 9.0, "dist_avwap": 0.83, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "DKS", "industry": "Other Specialty Retail", "price": 144.35, "status": "BREAKOUT_TRIGGERED", "ema9": 138.33, "ema21": 137.48, "ema50": 150.05, "peak_date": "89", "peak_high": 147.47, "avwap": 144.61, "sup_low": 135.42, "sup_high": 146.78, "dist_ema21": 5.0, "dist_avwap": -0.18, "higher_lows": true, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "IMBBY", "industry": "Tobacco", "price": 38.52, "status": "BREAKOUT_TRIGGERED", "ema9": 36.13, "ema21": 34.9, "ema50": 34.78, "peak_date": "89", "peak_high": 38.83, "avwap": 38.51, "sup_low": 34.37, "sup_high": 39.09, "dist_ema21": 10.39, "dist_avwap": 0.03, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "PBR", "industry": "Integrated Oil and Gas", "price": 26.0, "status": "BREAKOUT_TRIGGERED", "ema9": 24.92, "ema21": 23.44, "ema50": 21.55, "peak_date": "89", "peak_high": 26.1, "avwap": 25.84, "sup_low": 23.08, "sup_high": 26.23, "dist_ema21": 10.94, "dist_avwap": 0.62, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "TJX", "industry": "Apparel Retail", "price": 147.33, "status": "BREAKOUT_TRIGGERED", "ema9": 141.53, "ema21": 137.92, "ema50": 139.44, "peak_date": "89", "peak_high": 147.45, "avwap": 146.82, "sup_low": 135.85, "sup_high": 149.02, "dist_ema21": 6.83, "dist_avwap": 0.35, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "WIT", "industry": "IT Consulting and Other Services", "price": 1.95, "status": "BREAKOUT_TRIGGERED", "ema9": 1.79, "ema21": 1.75, "ema50": 1.79, "peak_date": "89", "peak_high": 1.98, "avwap": 1.95, "sup_low": 1.73, "sup_high": 1.98, "dist_ema21": 11.33, "dist_avwap": -0.0, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "AAPL", "industry": "核心关注池", "price": 343.46, "status": "IN_RETTEST_ZONE", "ema9": 340.19, "ema21": 336.52, "ema50": 328.87, "peak_date": "86", "peak_high": 348.15, "avwap": 343.79, "sup_low": 331.47, "sup_high": 348.94, "dist_ema21": 2.06, "dist_avwap": -0.1, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "价格正处于 21 EMA 与高点 AVWAP 支撑带，等待反弹买点信号"]}, {"symbol": "MAR", "industry": "Hotels, Resorts and Cruise Lines", "price": 388.05, "status": "IN_RETTEST_ZONE", "ema9": 372.73, "ema21": 363.01, "ema50": 358.6, "peak_date": "89", "peak_high": 394.74, "avwap": 390.11, "sup_low": 357.57, "sup_high": 395.97, "dist_ema21": 6.9, "dist_avwap": -0.53, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "价格正处于 21 EMA 与高点 AVWAP 支撑带，等待反弹买点信号"]}, {"symbol": "META", "industry": "核心关注池", "price": 709.33, "status": "IN_RETTEST_ZONE", "ema9": 730.8, "ema21": 717.95, "ema50": 677.7, "peak_date": "73", "peak_high": 779.82, "avwap": 738.09, "sup_low": 707.18, "sup_high": 749.16, "dist_ema21": -1.2, "dist_avwap": -3.9, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "价格正处于 21 EMA 与高点 AVWAP 支撑带，等待反弹买点信号"]}, {"symbol": "MPC", "industry": "Oil and Gas Refining and Marketing", "price": 478.07, "status": "IN_RETTEST_ZONE", "ema9": 462.66, "ema21": 438.11, "ema50": 399.58, "peak_date": "87", "peak_high": 485.22, "avwap": 478.02, "sup_low": 431.54, "sup_high": 485.19, "dist_ema21": 9.12, "dist_avwap": 0.01, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "价格正处于 21 EMA 与高点 AVWAP 支撑带，等待反弹买点信号"]}, {"symbol": "MSFT", "industry": "核心关注池", "price": 529.05, "status": "IN_RETTEST_ZONE", "ema9": 531.66, "ema21": 521.77, "ema50": 499.28, "peak_date": "86", "peak_high": 551.15, "avwap": 538.18, "sup_low": 513.94, "sup_high": 546.25, "dist_ema21": 1.39, "dist_avwap": -1.7, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "价格正处于 21 EMA 与高点 AVWAP 支撑带，等待反弹买点信号"]}, {"symbol": "TLN", "industry": "Independent Power and Renewable Electricity Producers", "price": 354.81, "status": "IN_RETTEST_ZONE", "ema9": 358.0, "ema21": 343.19, "ema50": 334.61, "peak_date": "85", "peak_high": 390.54, "avwap": 367.26, "sup_low": 338.04, "sup_high": 372.76, "dist_ema21": 3.39, "dist_avwap": -3.39, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "价格正处于 21 EMA 与高点 AVWAP 支撑带，等待反弹买点信号"]}, {"symbol": "AMZN", "industry": "核心关注池", "price": 250.0, "status": "WATCHING", "ema9": 254.62, "ema21": 254.3, "ema50": 253.88, "peak_date": "85", "peak_high": 263.7, "avwap": 255.5, "sup_low": 250.49, "sup_high": 259.33, "dist_ema21": -1.69, "dist_avwap": -2.15, "higher_lows": true, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "尚未回踩至支撑密集带，继续观察"]}, {"symbol": "CASY", "industry": "Food Retail", "price": 689.22, "status": "WATCHING", "ema9": 653.43, "ema21": 646.9, "ema50": 690.86, "peak_date": "61", "peak_high": 767.98, "avwap": 621.99, "sup_low": 612.66, "sup_high": 656.61, "dist_ema21": 6.54, "dist_avwap": 10.81, "higher_lows": true, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "尚未回踩至支撑密集带，继续观察"]}, {"symbol": "GOOGL", "industry": "核心关注池", "price": 340.59, "status": "WATCHING", "ema9": 347.39, "ema21": 346.51, "ema50": 346.31, "peak_date": "71", "peak_high": 364.17, "avwap": 346.59, "sup_low": 341.31, "sup_high": 351.79, "dist_ema21": -1.71, "dist_avwap": -1.73, "higher_lows": true, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "尚未回踩至支撑密集带，继续观察"]}, {"symbol": "PLTR", "industry": "核心关注池", "price": 186.03, "status": "WATCHING", "ema9": 197.37, "ema21": 192.57, "ema50": 179.92, "peak_date": "85", "peak_high": 212.94, "avwap": 201.02, "sup_low": 189.68, "sup_high": 204.03, "dist_ema21": -3.4, "dist_avwap": -7.45, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "尚未回踩至支撑密集带，继续观察"]}, {"symbol": "AMD", "industry": "核心关注池", "price": 528.75, "status": "BROKEN", "ema9": 583.07, "ema21": 585.17, "ema50": 556.36, "peak_date": "81", "peak_high": 658.52, "avwap": 595.6, "sup_low": 576.39, "sup_high": 604.53, "dist_ema21": -9.64, "dist_avwap": -11.22, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "ARM", "industry": "核心关注池", "price": 227.8, "status": "BROKEN", "ema9": 256.59, "ema21": 269.46, "ema50": 274.22, "peak_date": "72", "peak_high": 336.98, "avwap": 284.69, "sup_low": 265.42, "sup_high": 288.96, "dist_ema21": -15.46, "dist_avwap": -19.98, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "AVGO", "industry": "核心关注池", "price": 328.75, "status": "BROKEN", "ema9": 349.34, "ema21": 354.52, "ema50": 362.42, "peak_date": "81", "peak_high": 380.84, "avwap": 355.37, "sup_low": 349.2, "sup_high": 360.7, "dist_ema21": -7.27, "dist_avwap": -7.49, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "CRWD", "industry": "核心关注池", "price": 227.39, "status": "BROKEN", "ema9": 252.31, "ema21": 252.59, "ema50": 261.29, "peak_date": "81", "peak_high": 286.99, "avwap": 257.69, "sup_low": 248.8, "sup_high": 261.55, "dist_ema21": -9.98, "dist_avwap": -11.76, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "NVDA", "industry": "核心关注池", "price": 214.13, "status": "BROKEN", "ema9": 223.86, "ema21": 225.53, "ema50": 221.89, "peak_date": "81", "peak_high": 243.37, "avwap": 226.81, "sup_low": 222.15, "sup_high": 230.21, "dist_ema21": -5.05, "dist_avwap": -5.59, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "RKLB", "industry": "核心关注池", "price": 50.84, "status": "BROKEN", "ema9": 61.71, "ema21": 65.63, "ema50": 69.57, "peak_date": "81", "peak_high": 78.28, "avwap": 63.09, "sup_low": 62.14, "sup_high": 66.62, "dist_ema21": -22.54, "dist_avwap": -19.41, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "SMCI", "industry": "核心关注池", "price": 31.63, "status": "BROKEN", "ema9": 37.76, "ema21": 39.27, "ema50": 37.92, "peak_date": "82", "peak_high": 45.77, "avwap": 38.77, "sup_low": 38.18, "sup_high": 39.86, "dist_ema21": -19.46, "dist_avwap": -18.41, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "TSLA", "industry": "核心关注池", "price": 354.72, "status": "BROKEN", "ema9": 367.87, "ema21": 367.92, "ema50": 364.65, "peak_date": "84", "peak_high": 388.56, "avwap": 368.68, "sup_low": 362.4, "sup_high": 374.21, "dist_ema21": -3.59, "dist_avwap": -3.79, "higher_lows": true, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "跌穿关键支撑带，失去试错胜率"]}];
+const stocks = [{"symbol": "ACN", "industry": "IT Consulting and Other Services", "price": 229.68, "status": "BREAKOUT_TRIGGERED", "ema9": 213.84, "ema21": 202.59, "ema50": 189.63, "peak_date": "89", "peak_high": 231.36, "avwap": 228.33, "sup_low": 199.56, "sup_high": 231.76, "dist_ema21": 13.37, "dist_avwap": 0.59, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "CBOE", "industry": "Financial Exchanges and Data", "price": 314.98, "status": "BREAKOUT_TRIGGERED", "ema9": 297.95, "ema21": 288.98, "ema50": 286.14, "peak_date": "89", "peak_high": 315.56, "avwap": 312.4, "sup_low": 284.65, "sup_high": 317.08, "dist_ema21": 9.0, "dist_avwap": 0.83, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "DKS", "industry": "Other Specialty Retail", "price": 144.35, "status": "BREAKOUT_TRIGGERED", "ema9": 138.33, "ema21": 137.48, "ema50": 150.05, "peak_date": "89", "peak_high": 147.47, "avwap": 144.61, "sup_low": 135.42, "sup_high": 146.78, "dist_ema21": 5.0, "dist_avwap": -0.18, "higher_lows": true, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "IMBBY", "industry": "Tobacco", "price": 38.52, "status": "BREAKOUT_TRIGGERED", "ema9": 36.13, "ema21": 34.9, "ema50": 34.78, "peak_date": "89", "peak_high": 38.83, "avwap": 38.51, "sup_low": 34.37, "sup_high": 39.09, "dist_ema21": 10.39, "dist_avwap": 0.03, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "PBR", "industry": "Integrated Oil and Gas", "price": 26.0, "status": "BREAKOUT_TRIGGERED", "ema9": 24.92, "ema21": 23.42, "ema50": 21.48, "peak_date": "2026-10-16", "peak_high": 26.1, "avwap": 25.84, "sup_low": 23.07, "sup_high": 26.23, "dist_ema21": 11.01, "dist_avwap": 0.62, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "PSO", "industry": "Education Services", "price": 18.24, "status": "BREAKOUT_TRIGGERED", "ema9": 17.29, "ema21": 16.77, "ema50": 16.45, "peak_date": "89", "peak_high": 18.35, "avwap": 18.23, "sup_low": 16.52, "sup_high": 18.51, "dist_ema21": 8.75, "dist_avwap": 0.03, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "RELX", "industry": "Research and Consulting Services", "price": 39.06, "status": "BREAKOUT_TRIGGERED", "ema9": 36.74, "ema21": 35.55, "ema50": 34.94, "peak_date": "89", "peak_high": 39.56, "avwap": 39.13, "sup_low": 35.02, "sup_high": 39.72, "dist_ema21": 9.88, "dist_avwap": -0.18, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "SSL", "industry": "Diversified Chemicals", "price": 16.34, "status": "BREAKOUT_TRIGGERED", "ema9": 15.4, "ema21": 14.71, "ema50": 13.74, "peak_date": "89", "peak_high": 16.34, "avwap": 16.23, "sup_low": 14.49, "sup_high": 16.47, "dist_ema21": 11.08, "dist_avwap": 0.69, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "TJX", "industry": "Apparel Retail", "price": 147.33, "status": "BREAKOUT_TRIGGERED", "ema9": 141.53, "ema21": 137.92, "ema50": 139.44, "peak_date": "89", "peak_high": 147.45, "avwap": 146.82, "sup_low": 135.85, "sup_high": 149.02, "dist_ema21": 6.83, "dist_avwap": 0.35, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "WIT", "industry": "IT Consulting and Other Services", "price": 1.95, "status": "BREAKOUT_TRIGGERED", "ema9": 1.79, "ema21": 1.75, "ema50": 1.79, "peak_date": "89", "peak_high": 1.98, "avwap": 1.95, "sup_low": 1.73, "sup_high": 1.98, "dist_ema21": 11.33, "dist_avwap": -0.0, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "在支撑区域出现回升，突破前K线最高价，触发入场信号！"]}, {"symbol": "AAPL", "industry": "核心关注池", "price": 343.46, "status": "IN_RETTEST_ZONE", "ema9": 340.19, "ema21": 336.52, "ema50": 328.87, "peak_date": "86", "peak_high": 348.15, "avwap": 343.79, "sup_low": 331.47, "sup_high": 348.94, "dist_ema21": 2.06, "dist_avwap": -0.1, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "价格正处于 21 EMA 与高点 AVWAP 支撑带，等待反弹买点信号"]}, {"symbol": "META", "industry": "核心关注池", "price": 709.33, "status": "IN_RETTEST_ZONE", "ema9": 730.8, "ema21": 717.95, "ema50": 677.7, "peak_date": "73", "peak_high": 779.82, "avwap": 738.09, "sup_low": 707.18, "sup_high": 749.16, "dist_ema21": -1.2, "dist_avwap": -3.9, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "价格正处于 21 EMA 与高点 AVWAP 支撑带，等待反弹买点信号"]}, {"symbol": "MSFT", "industry": "核心关注池", "price": 529.05, "status": "IN_RETTEST_ZONE", "ema9": 531.66, "ema21": 521.77, "ema50": 499.28, "peak_date": "86", "peak_high": 551.15, "avwap": 538.18, "sup_low": 513.94, "sup_high": 546.25, "dist_ema21": 1.39, "dist_avwap": -1.7, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "价格正处于 21 EMA 与高点 AVWAP 支撑带，等待反弹买点信号"]}, {"symbol": "AMZN", "industry": "核心关注池", "price": 250.0, "status": "WATCHING", "ema9": 254.62, "ema21": 254.3, "ema50": 253.88, "peak_date": "85", "peak_high": 263.7, "avwap": 255.5, "sup_low": 250.49, "sup_high": 259.33, "dist_ema21": -1.69, "dist_avwap": -2.15, "higher_lows": true, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "尚未回踩至支撑密集带，继续观察"]}, {"symbol": "CASY", "industry": "Food Retail", "price": 689.22, "status": "WATCHING", "ema9": 653.43, "ema21": 646.9, "ema50": 690.86, "peak_date": "61", "peak_high": 767.98, "avwap": 621.99, "sup_low": 612.66, "sup_high": 656.61, "dist_ema21": 6.54, "dist_avwap": 10.81, "higher_lows": true, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "尚未回踩至支撑密集带，继续观察"]}, {"symbol": "GOOGL", "industry": "核心关注池", "price": 340.59, "status": "WATCHING", "ema9": 347.39, "ema21": 346.51, "ema50": 346.31, "peak_date": "71", "peak_high": 364.17, "avwap": 346.59, "sup_low": 341.31, "sup_high": 351.79, "dist_ema21": -1.71, "dist_avwap": -1.73, "higher_lows": true, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "尚未回踩至支撑密集带，继续观察"]}, {"symbol": "PLTR", "industry": "核心关注池", "price": 186.03, "status": "WATCHING", "ema9": 197.37, "ema21": 192.57, "ema50": 179.92, "peak_date": "85", "peak_high": 212.94, "avwap": 201.02, "sup_low": 189.68, "sup_high": 204.03, "dist_ema21": -3.4, "dist_avwap": -7.45, "higher_lows": true, "reasons": ["股价保持在 50 EMA 强弱线上方", "EMA 9 与 EMA 21 保持多头或收敛走平", "尚未回踩至支撑密集带，继续观察"]}, {"symbol": "AMD", "industry": "核心关注池", "price": 528.75, "status": "BROKEN", "ema9": 583.07, "ema21": 585.17, "ema50": 556.36, "peak_date": "81", "peak_high": 658.52, "avwap": 595.6, "sup_low": 576.39, "sup_high": 604.53, "dist_ema21": -9.64, "dist_avwap": -11.22, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "ARM", "industry": "核心关注池", "price": 227.8, "status": "BROKEN", "ema9": 256.59, "ema21": 269.46, "ema50": 274.22, "peak_date": "72", "peak_high": 336.98, "avwap": 284.69, "sup_low": 265.42, "sup_high": 288.96, "dist_ema21": -15.46, "dist_avwap": -19.98, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "AVGO", "industry": "核心关注池", "price": 328.75, "status": "BROKEN", "ema9": 349.34, "ema21": 354.52, "ema50": 362.42, "peak_date": "81", "peak_high": 380.84, "avwap": 355.37, "sup_low": 349.2, "sup_high": 360.7, "dist_ema21": -7.27, "dist_avwap": -7.49, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "CRWD", "industry": "核心关注池", "price": 227.39, "status": "BROKEN", "ema9": 252.31, "ema21": 252.18, "ema50": 235.67, "peak_date": "2026-10-06", "peak_high": 286.99, "avwap": 257.7, "sup_low": 248.4, "sup_high": 261.56, "dist_ema21": -9.83, "dist_avwap": -11.76, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "NVDA", "industry": "核心关注池", "price": 214.13, "status": "BROKEN", "ema9": 223.86, "ema21": 225.53, "ema50": 221.89, "peak_date": "81", "peak_high": 243.37, "avwap": 226.81, "sup_low": 222.15, "sup_high": 230.21, "dist_ema21": -5.05, "dist_avwap": -5.59, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "RKLB", "industry": "核心关注池", "price": 50.84, "status": "BROKEN", "ema9": 61.71, "ema21": 65.63, "ema50": 69.57, "peak_date": "81", "peak_high": 78.28, "avwap": 63.09, "sup_low": 62.14, "sup_high": 66.62, "dist_ema21": -22.54, "dist_avwap": -19.41, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "SMCI", "industry": "核心关注池", "price": 31.63, "status": "BROKEN", "ema9": 37.76, "ema21": 39.27, "ema50": 37.92, "peak_date": "82", "peak_high": 45.77, "avwap": 38.77, "sup_low": 38.18, "sup_high": 39.86, "dist_ema21": -19.46, "dist_avwap": -18.41, "higher_lows": false, "reasons": ["股价跌破 50 EMA，大周期转弱", "跌穿关键支撑带，失去试错胜率"]}, {"symbol": "TSLA", "industry": "核心关注池", "price": 354.72, "status": "BROKEN", "ema9": 367.87, "ema21": 367.92, "ema50": 365.44, "peak_date": "2026-10-09", "peak_high": 388.56, "avwap": 368.69, "sup_low": 362.4, "sup_high": 374.22, "dist_ema21": -3.59, "dist_avwap": -3.79, "higher_lows": true, "reasons": ["股价跌破 50 EMA，大周期转弱", "EMA 9 与 EMA 21 保持多头或收敛走平", "跌穿关键支撑带，失去试错胜率"]}];
 let currentSymbol = 'NVDA';
 let currentPeriod = '5m';
 let currentSupLow = 0;
@@ -692,6 +702,100 @@ function switchMainTab(tabId) {
 }
 
 // 记录开仓买入
+function checkIbkrStatus() {
+  const badge = document.getElementById('ibkr-conn-badge');
+  if (badge) badge.innerText = '正在检测...';
+  fetch('http://127.0.0.1:1098/api/ibkr/status')
+    .then(r => r.json())
+    .then(data => {
+      if (badge) {
+        if (data.connected) {
+          badge.style.background = 'rgba(34, 197, 94, 0.2)';
+          badge.style.color = '#4ade80';
+          badge.innerText = '🟢 已连接 (端口 ' + data.port + ' | 账户 ' + data.account_id + ' | 净值 $' + Number(data.net_liquidation).toLocaleString() + ')';
+        } else {
+          badge.style.background = 'rgba(239, 68, 68, 0.2)';
+          badge.style.color = '#f87171';
+          badge.innerText = '🔴 未连接 (TWS/IB Gateway 未启动)';
+        }
+      }
+    })
+    .catch(() => {
+      if (badge) {
+        badge.style.background = 'rgba(239, 68, 68, 0.2)';
+        badge.style.color = '#f87171';
+        badge.innerText = '🔴 本地服务未响应';
+      }
+    });
+}
+
+function placeIbkrOrder() {
+  const sym = document.getElementById('calc-sym').value.toUpperCase();
+  const entry = parseFloat(document.getElementById('calc-entry').value);
+  const stop = parseFloat(document.getElementById('calc-stop').value);
+  const cap = parseFloat(document.getElementById('calc-cap').value);
+  const risk = parseFloat(document.getElementById('calc-risk').value);
+
+  if (!sym || !entry || !stop) {
+    alert("请先填写或在左侧选择有效的股票与价格参数！");
+    return;
+  }
+
+  if (stop >= entry) {
+    alert("止损价必须严格低于买入价！");
+    return;
+  }
+
+  const lossPct = ((entry - stop) / entry) * 100;
+  if (lossPct > 3.5) {
+    alert("⚠️ 当前止损幅度为 " + lossPct.toFixed(2) + "%，超过了 Martin Luk 冠军战法 ≤ 3% 的窄止损铁律！请重新调整进场点。");
+    return;
+  }
+
+  const r3Price = (entry + 3 * (entry - stop)).toFixed(2);
+  const br = String.fromCharCode(10);
+  const confirmMsg = "🚀 确认向 IBKR 模拟盘发送【" + sym + "】括号单吗？" + br + br +
+    "• 买入参考价: $" + entry + br +
+    "• 硬止损价: $" + stop + " (-" + lossPct.toFixed(2) + "%)" + br +
+    "• 3R 减半仓止盈价: $" + r3Price + br +
+    "• 单笔微试错风险: 账户的 " + risk + "%";
+
+  if (!confirm(confirmMsg)) {
+    return;
+  }
+
+  fetch('http://127.0.0.1:1098/api/ibkr/buy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      symbol: sym,
+      entry_price: entry,
+      stop_price: stop,
+      account_capital: cap,
+      risk_budget_pct: risk
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.status === 'success') {
+      const br = String.fromCharCode(10);
+      const alertMsg = "🎉 成功提交至 IBKR 模拟盘！" + br + br +
+        "• 成交股数: " + data.shares + " 股" + br +
+        "• 硬止损单 ID: " + data.stop_order_id + " (GTC)" + br +
+        "• 3R 止盈单 ID: " + data.tp_order_id + br + br +
+        "系统已自动同步记入【交易跟踪平台】！";
+      alert(alertMsg);
+      loadTradesJournal();
+      switchMainTab('tracking');
+    } else {
+      alert("❌ IBKR 模拟盘下单失败: " + (data.message || "未知错误，请检查 TWS 是否开启模拟交易！"));
+    }
+  })
+  .catch(err => {
+    alert("下单请求失败，请确保本地行情服务启动中！");
+  });
+}
+
 function recordBuyTrade() {
   const sym = document.getElementById('calc-sym').value.toUpperCase();
   const entry = parseFloat(document.getElementById('calc-entry').value);
@@ -1182,6 +1286,7 @@ setInterval(() => {
 window.onload = () => {
   renderTable();
   startPoolCountdown();
+  checkIbkrStatus();
   if (stocks.length > 0) {
     selectStock(stocks[0]);
   } else {
